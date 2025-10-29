@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// MULTI-TENANCY (Simple for Demo)
+// ============================================
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  companies Company[]
+  deals     Deal[]
+  people    Person[]
+  events    Event[]
+}
+
+// ============================================
+// CORE CRM ENTITIES
+// ============================================
+
+model Company {
+  id          String   @id @default(cuid())
+  tenantId    String   @default("demo-tenant")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  name        String
+  website     String?
+  industry    String?
+  size        String?
+  geography   String?
+  status      String   @default("Lead")
+  description String?  @db.Text
+  foundedYear Int?
+
+  sourceType  String?
+  sourceQuery String?
+  confidence  Float?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  people              Person[]
+  deals               Deal[]
+  events              Event[]
+  sequenceEnrollments SequenceEnrollment[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([sourceType])
+  @@index([website])
+}
+
+model Person {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("demo-tenant")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  title     String?
+  linkedin  String?
+
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events       Event[]
+  primaryDeals Deal[]  @relation("PrimaryContact")
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([email])
+}
+
+model Deal {
+  id          String    @id @default(cuid())
+  tenantId    String    @default("demo-tenant")
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+
+  title       String
+  value       Float?
+  stage       String    @default("Prospecting")
+  probability Int?
+  closeDate   DateTime?
+  description String?   @db.Text
+
+  nextAction     String?
+  lostReason     String?
+  stageChangedAt DateTime?
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  primaryContactId String?
+  primaryContact   Person? @relation("PrimaryContact", fields: [primaryContactId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events Event[]
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([stage])
+  @@index([stageChangedAt])
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  tenantId    String    @default("demo-tenant")
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+
+  type        String
+  title       String
+  description String?   @db.Text
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+
+  source      String    @default("manual")
+  priority    String?
+  outcome     String?
+
+  emailStatus String?
+  sequenceId  String?
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  personId String?
+  person   Person? @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  dealId String?
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([personId])
+  @@index([dealId])
+  @@index([type])
+  @@index([source])
+  @@index([dueDate])
+  @@index([completed])
+}
+
+// ============================================
+// EMAIL SEQUENCES
+// ============================================
+
+model EmailSequence {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  active      Boolean  @default(true)
+
+  pauseOnDealCreation Boolean  @default(true)
+  pauseOnDealStages   String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  steps       EmailSequenceStep[]
+  enrollments SequenceEnrollment[]
+}
+
+model EmailSequenceStep {
+  id         String @id @default(cuid())
+  sequenceId String
+  sequence   EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+
+  stepOrder Int
+  delayDays Int
+  subject   String
+  body      String @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sequenceId, stepOrder])
+  @@index([sequenceId])
+}
+
+model SequenceEnrollment {
+  id         String @id @default(cuid())
+  sequenceId String
+  sequence   EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  status      String    @default("active")
+  pauseReason String?
+  currentStep Int       @default(0)
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  scheduledEmails ScheduledEmail[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sequenceId])
+  @@index([companyId])
+  @@index([status])
+}
+
+model ScheduledEmail {
+  id           String @id @default(cuid())
+  enrollmentId String
+  enrollment   SequenceEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  stepOrder    Int
+  subject      String
+  body         String   @db.Text
+  scheduledFor DateTime
+  status       String   @default("scheduled")
+  sentAt       DateTime?
+
+  emailProvider String?
+  externalId    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enrollmentId])
+  @@index([status])
+  @@index([scheduledFor])
+}
