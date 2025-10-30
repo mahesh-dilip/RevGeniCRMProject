@@ -109,7 +109,7 @@ export default function DealsPage() {
                         return (
                           <Link
                             key={deal.id}
-                            href={`/companies/${deal.companyId}`}
+                            href={`/deals/${deal.id}`}
                             className="block"
                           >
                             <Card className="p-3 hover:shadow-md transition-all cursor-pointer border-l-4" style={{ borderLeftColor: borderColor }}>
