@@ -1,25 +1,40 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { checkForDuplicate } from '@/lib/security/duplicate-detection';
+import { getAuthContext } from '@/lib/auth/context';
+import { requirePermission } from '@/lib/auth/permissions';
+import { rateLimit } from '@/lib/middleware/rate-limit';
+import { validateRequest, BulkCreateCompaniesSchema } from '@/lib/validations/api';
 
 export async function POST(request: Request) {
   try {
-    const { companies } = await request.json();
+    // 1. Authentication
+    const authContext = await getAuthContext();
 
-    if (!Array.isArray(companies) || companies.length === 0) {
-      return NextResponse.json(
-        { error: 'No companies provided' },
-        { status: 400 }
-      );
-    }
+    // 2. Rate limiting (bulk operations are expensive)
+    const rateLimitResponse = await rateLimit(authContext.userId, 'bulk');
+    if (rateLimitResponse) return rateLimitResponse;
+
+    // 3. Authorization
+    requirePermission(authContext, 'BULK_CREATE');
+
+    // 4. Validation
+    const data = await validateRequest(request, BulkCreateCompaniesSchema);
 
     let created = 0;
     let skipped = 0;
     const createdCompanies = [];
 
-    for (const company of companies) {
-      // Check for duplicates
-      const isDuplicate = await checkForDuplicate(company.website, company.name);
+    for (const company of data.companies) {
+      // Check for duplicates within tenant
+      const isDuplicate = await prisma.company.findFirst({
+        where: {
+          tenantId: authContext.tenantId,
+          OR: [
+            { website: company.website },
+            { name: company.name },
+          ],
+        },
+      });
 
       if (isDuplicate) {
         console.log(`⚠️ Skipping duplicate: ${company.name}`);
@@ -27,9 +42,10 @@ export async function POST(request: Request) {
         continue;
       }
 
-      // Create company
+      // Create company with tenant isolation
       const newCompany = await prisma.company.create({
         data: {
+          tenantId: authContext.tenantId,
           name: company.name,
           website: company.website,
           industry: company.industry,
@@ -38,9 +54,9 @@ export async function POST(request: Request) {
           description: company.description,
           foundedYear: company.foundedYear,
           confidence: company.confidence,
-          status: 'Lead',
-          sourceType: 'ai_agent',
-          sourceQuery: company.sourceQuery || 'AI Generated'
+          status: company.status || 'Lead',
+          sourceType: company.sourceType || 'ai_agent',
+          sourceQuery: company.sourceQuery || 'Bulk Import'
         }
       });
 
@@ -57,8 +73,11 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Bulk create error:', error);
     return NextResponse.json(
-      { error: 'Failed to create companies' },
-      { status: 500 }
+      {
+        error: 'Failed to create companies',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
 }
