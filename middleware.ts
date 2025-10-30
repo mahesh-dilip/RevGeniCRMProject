@@ -14,6 +14,7 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/api/test-error(.*)',  // Test route for Sentry integration
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

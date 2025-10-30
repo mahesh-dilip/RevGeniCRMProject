@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -35,7 +38,7 @@ function NewPersonForm() {
       const data = await response.json();
       setCompanies(data);
     } catch (error) {
-      console.error('Error fetching companies:', error);
+      logError('Error fetching companies:', error);
       toast.error('Failed to load companies');
     }
   };
@@ -66,7 +69,7 @@ function NewPersonForm() {
         router.push('/people');
       }
     } catch (error) {
-      console.error('Error creating person:', error);
+      logError('Error creating person:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create person');
     } finally {
       setLoading(false);

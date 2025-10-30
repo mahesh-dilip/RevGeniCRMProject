@@ -2,13 +2,20 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateRequest } from '@/lib/middleware/validate';
 import { CreateCompanySchema } from '@/lib/validations/companies';
+import { logError } from '@/lib/logging';
+
+import { getAuthContext } from '@/lib/auth/context';
 
 export async function GET(request: Request) {
   try {
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+
     const { searchParams } = new URL(request.url);
     const includePeople = searchParams.get('includePeople') === 'true';
 
     const companies = await prisma.company.findMany({
+      where: { tenantId },
       orderBy: { createdAt: 'desc' },
       include: {
         ...(includePeople && { people: true }),
@@ -23,7 +30,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(companies);
   } catch (error) {
-    console.error('Error fetching companies:', error);
+    logError('Error fetching companies:', error);
     return NextResponse.json(
       { error: 'Failed to fetch companies' },
       { status: 500 }
@@ -33,6 +40,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+
     // Validate request body
     const validation = await validateRequest(request, CreateCompanySchema);
     if ('error' in validation) {
@@ -43,6 +53,7 @@ export async function POST(request: Request) {
 
     const company = await prisma.company.create({
       data: {
+        tenantId,
         name: data.name,
         website: data.website,
         industry: data.industry,
@@ -59,7 +70,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(company);
   } catch (error) {
-    console.error('Error creating company:', error);
+    logError('Error creating company:', error);
     return NextResponse.json(
       { error: 'Failed to create company' },
       { status: 500 }

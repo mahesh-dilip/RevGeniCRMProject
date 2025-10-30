@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -100,7 +103,7 @@ export default function NewSequencePage() {
       toast.success(`Sequence "${sequence.name}" created successfully!`);
       router.push('/sequences');
     } catch (error) {
-      console.error('Error creating sequence:', error);
+      logError('Error creating sequence:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create sequence');
     } finally {
       setLoading(false);

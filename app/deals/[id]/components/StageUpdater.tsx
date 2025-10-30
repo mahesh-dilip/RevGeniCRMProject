@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -66,7 +69,7 @@ export function StageUpdater({ dealId, currentStage }: StageUpdaterProps) {
       setLostReason('');
       router.refresh();
     } catch (error) {
-      console.error('Error updating stage:', error);
+      logError('Error updating stage:', error);
       toast.error('Failed to update deal stage');
     } finally {
       setLoading(false);

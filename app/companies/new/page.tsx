@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -47,7 +50,7 @@ export default function NewCompanyPage() {
       toast.success(`${company.name} added successfully!`);
       router.push('/companies');
     } catch (error) {
-      console.error('Error creating company:', error);
+      logError('Error creating company:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create company');
     } finally {
       setLoading(false);

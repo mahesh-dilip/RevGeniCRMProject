@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -55,7 +58,7 @@ export default function EditSequencePage({ params }: { params: { id: string } })
 
       setSteps(sequence.steps || []);
     } catch (error) {
-      console.error('Error fetching sequence:', error);
+      logError('Error fetching sequence:', error);
       toast.error('Failed to load sequence');
       router.push('/sequences');
     } finally {
@@ -125,7 +128,7 @@ export default function EditSequencePage({ params }: { params: { id: string } })
       toast.success(`Sequence "${sequence.name}" updated successfully!`);
       router.push(`/sequences/${params.id}`);
     } catch (error) {
-      console.error('Error updating sequence:', error);
+      logError('Error updating sequence:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to update sequence');
     } finally {
       setLoading(false);

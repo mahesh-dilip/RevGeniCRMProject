@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -51,7 +54,7 @@ function NewActivityForm() {
       const companiesData = await companiesResponse.json();
       setCompanies(Array.isArray(companiesData) ? companiesData : []);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logError('Error fetching data:', error);
       toast.error('Failed to load data');
     }
   };
@@ -62,7 +65,7 @@ function NewActivityForm() {
       const data = await response.json();
       setPeople(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching people:', error);
+      logError('Error fetching people:', error);
     }
   };
 
@@ -72,7 +75,7 @@ function NewActivityForm() {
       const data = await response.json();
       setDeals(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching deals:', error);
+      logError('Error fetching deals:', error);
     }
   };
 
@@ -110,7 +113,7 @@ function NewActivityForm() {
         router.push('/activities');
       }
     } catch (error) {
-      console.error('Error logging activity:', error);
+      logError('Error logging activity:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to log activity');
     } finally {
       setLoading(false);

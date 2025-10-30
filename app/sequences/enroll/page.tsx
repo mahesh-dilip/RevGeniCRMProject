@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -37,7 +40,7 @@ function EnrollSequenceForm() {
       setSequences(sequencesData.filter((s: any) => s.active));
       setCompany(companyData);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logError('Error fetching data:', error);
       toast.error('Failed to load sequences');
     }
   };
@@ -65,7 +68,7 @@ function EnrollSequenceForm() {
       toast.success('Company enrolled in sequence!');
       router.push(`/companies/${companyId}`);
     } catch (error) {
-      console.error('Enrollment error:', error);
+      logError('Enrollment error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to enroll');
     } finally {
       setLoading(false);

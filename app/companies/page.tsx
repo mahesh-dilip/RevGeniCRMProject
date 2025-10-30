@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -27,7 +30,7 @@ export default function CompaniesPage() {
       const data = await response.json();
       setCompanies(data);
     } catch (error) {
-      console.error('Error fetching companies:', error);
+      logError('Error fetching companies:', error);
     } finally {
       setLoading(false);
     }

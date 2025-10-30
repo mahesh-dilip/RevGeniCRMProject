@@ -2,10 +2,16 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { onEventCreated } from '@/lib/automations/triggers';
 import { validateRequest } from '@/lib/middleware/validate';
+import { logError } from '@/lib/logging';
+
 import { CreateEventSchema } from '@/lib/validations/events';
+import { getAuthContext } from '@/lib/auth/context';
 
 export async function GET(request: Request) {
   try {
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+
     const { searchParams } = new URL(request.url);
     const companyId = searchParams.get('companyId');
     const personId = searchParams.get('personId');
@@ -13,7 +19,7 @@ export async function GET(request: Request) {
     const type = searchParams.get('type');
     const completed = searchParams.get('completed');
 
-    const where: any = {};
+    const where: any = { tenantId };
     if (companyId) where.companyId = companyId;
     if (personId) where.personId = personId;
     if (dealId) where.dealId = dealId;
@@ -53,7 +59,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(events);
   } catch (error) {
-    console.error('Error fetching events:', error);
+    logError('Error fetching events:', error);
     return NextResponse.json(
       { error: 'Failed to fetch events' },
       { status: 500 }
@@ -63,6 +69,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+
     // Validate request body
     const validation = await validateRequest(request, CreateEventSchema);
     if ('error' in validation) {
@@ -73,6 +82,7 @@ export async function POST(request: Request) {
 
     const event = await prisma.event.create({
       data: {
+        tenantId,
         type: data.type,
         title: data.title,
         description: data.description,
@@ -99,7 +109,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(event);
   } catch (error) {
-    console.error('Error creating event:', error);
+    logError('Error creating event:', error);
     return NextResponse.json(
       { error: 'Failed to create event' },
       { status: 500 }

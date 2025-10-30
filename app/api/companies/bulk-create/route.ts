@@ -2,11 +2,18 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkForDuplicate } from '@/lib/security/duplicate-detection';
 import { validateRequest } from '@/lib/middleware/validate';
+import { logError } from '@/lib/logging';
+
 import { BulkCreateCompaniesSchema } from '@/lib/validations/companies';
 import { rateLimit, getClientIdentifier } from '@/lib/middleware/rate-limit-memory';
+import { getAuthContext, requireRole } from '@/lib/auth/context';
 
 export async function POST(request: Request) {
   try {
+    // Get authenticated user context and check permissions
+    const { tenantId, role } = await getAuthContext();
+    requireRole(role, 'MANAGER'); // Bulk operations require MANAGER role or higher
+
     // Rate limiting - Bulk operations can flood the database
     const identifier = getClientIdentifier(request);
     const rateLimitResult = await rateLimit(identifier, 'bulk');
@@ -54,6 +61,7 @@ export async function POST(request: Request) {
       // Create company
       const newCompany = await prisma.company.create({
         data: {
+          tenantId,
           name: company.name,
           website: company.website,
           industry: company.industry,
@@ -79,7 +87,7 @@ export async function POST(request: Request) {
       companies: createdCompanies
     });
   } catch (error) {
-    console.error('Bulk create error:', error);
+    logError('Bulk create error:', error);
     return NextResponse.json(
       { error: 'Failed to create companies' },
       { status: 500 }

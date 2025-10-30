@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -21,7 +24,7 @@ export default function PeoplePage() {
       const data = await response.json();
       setPeople(data);
     } catch (error) {
-      console.error('Error fetching people:', error);
+      logError('Error fetching people:', error);
     } finally {
       setLoading(false);
     }

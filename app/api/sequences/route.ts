@@ -2,10 +2,17 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateRequest } from '@/lib/middleware/validate';
 import { CreateSequenceSchema } from '@/lib/validations/sequences';
+import { logError } from '@/lib/logging';
+
+import { getAuthContext } from '@/lib/auth/context';
 
 export async function GET() {
   try {
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+
     const sequences = await prisma.emailSequence.findMany({
+      where: { tenantId },
       orderBy: { createdAt: 'desc' },
       include: {
         steps: {
@@ -21,7 +28,7 @@ export async function GET() {
 
     return NextResponse.json(sequences);
   } catch (error) {
-    console.error('Error fetching sequences:', error);
+    logError('Error fetching sequences:', error);
     return NextResponse.json(
       { error: 'Failed to fetch sequences' },
       { status: 500 }
@@ -31,6 +38,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+
     // Validate request body
     const validation = await validateRequest(request, CreateSequenceSchema);
     if ('error' in validation) {
@@ -41,6 +51,7 @@ export async function POST(request: Request) {
 
     const sequence = await prisma.emailSequence.create({
       data: {
+        tenantId,
         name: data.name,
         description: data.description,
         active: data.active !== false,
@@ -64,7 +75,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(sequence);
   } catch (error) {
-    console.error('Error creating sequence:', error);
+    logError('Error creating sequence:', error);
     return NextResponse.json(
       { error: 'Failed to create sequence' },
       { status: 500 }

@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -47,7 +50,7 @@ function NewDealForm() {
         setCompanies(Array.isArray(companiesData) ? companiesData : []);
         setPeople(Array.isArray(peopleData) ? peopleData : []);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        logError('Error fetching data:', error);
         toast.error('Failed to load companies and contacts');
         setCompanies([]);
         setPeople([]);
@@ -100,7 +103,7 @@ function NewDealForm() {
       toast.success('Deal created successfully!');
       router.push('/deals');
     } catch (error) {
-      console.error('Create deal error:', error);
+      logError('Create deal error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create deal');
     } finally {
       setLoading(false);

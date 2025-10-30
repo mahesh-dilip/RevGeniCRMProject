@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -41,7 +44,7 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
         type: 'company'
       });
     } catch (error) {
-      console.error('Error fetching company:', error);
+      logError('Error fetching company:', error);
       toast.error('Failed to load company');
       router.push('/companies');
     } finally {
@@ -66,7 +69,7 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
       toast.success('Company deleted successfully');
       router.push('/companies');
     } catch (error) {
-      console.error('Error deleting company:', error);
+      logError('Error deleting company:', error);
       toast.error('Failed to delete company');
     }
   };

@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -30,7 +33,7 @@ export function ToggleCompleteButton({ eventId, completed }: ToggleCompleteButto
       toast.success(completed ? 'Event marked as incomplete' : 'Event marked as complete');
       router.refresh();
     } catch (error) {
-      console.error('Error toggling event:', error);
+      logError('Error toggling event:', error);
       toast.error('Failed to update event');
     } finally {
       setLoading(false);

@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -44,7 +47,7 @@ export default function EditCompanyPage({ params }: { params: { id: string } }) 
         foundedYear: data.foundedYear?.toString() || ''
       });
     } catch (error) {
-      console.error('Error fetching company:', error);
+      logError('Error fetching company:', error);
       toast.error('Failed to load company');
       router.push('/companies');
     } finally {
@@ -74,7 +77,7 @@ export default function EditCompanyPage({ params }: { params: { id: string } }) 
       toast.success('Company updated successfully!');
       router.push(`/companies/${params.id}`);
     } catch (error) {
-      console.error('Error updating company:', error);
+      logError('Error updating company:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to update company');
     } finally {
       setSaving(false);

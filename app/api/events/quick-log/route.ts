@@ -2,9 +2,15 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateRequest } from '@/lib/middleware/validate';
 import { QuickLogEventSchema } from '@/lib/validations/events';
+import { logError } from '@/lib/logging';
+
+import { getAuthContext } from '@/lib/auth/context';
 
 export async function POST(request: Request) {
   try {
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+
     // Validate request body
     const validation = await validateRequest(request, QuickLogEventSchema);
     if ('error' in validation) {
@@ -15,6 +21,7 @@ export async function POST(request: Request) {
 
     const event = await prisma.event.create({
       data: {
+        tenantId,
         type: data.type,
         title: data.title,
         description: data.description,
@@ -26,7 +33,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(event);
   } catch (error) {
-    console.error('Error logging event:', error);
+    logError('Error logging event:', error);
     return NextResponse.json(
       { error: 'Failed to log event' },
       { status: 500 }

@@ -52,6 +52,7 @@ export async function updateLifecycleStage(companyId: string) {
     // Log the change
     await prisma.event.create({
       data: {
+        tenantId: company.tenantId,
         type: 'note',
         title: `Lifecycle stage updated to ${newStage.toUpperCase()}`,
         description: `Company automatically progressed from ${company.lifecycleStage} to ${newStage}`,

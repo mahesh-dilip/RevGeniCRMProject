@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -50,7 +53,7 @@ function NewTaskForm() {
       const companiesData = await companiesResponse.json();
       setCompanies(Array.isArray(companiesData) ? companiesData : []);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logError('Error fetching data:', error);
       toast.error('Failed to load data');
     }
   };
@@ -61,7 +64,7 @@ function NewTaskForm() {
       const data = await response.json();
       setPeople(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching people:', error);
+      logError('Error fetching people:', error);
     }
   };
 
@@ -71,7 +74,7 @@ function NewTaskForm() {
       const data = await response.json();
       setDeals(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching deals:', error);
+      logError('Error fetching deals:', error);
     }
   };
 
@@ -109,7 +112,7 @@ function NewTaskForm() {
         router.push('/tasks');
       }
     } catch (error) {
-      console.error('Error creating task:', error);
+      logError('Error creating task:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create task');
     } finally {
       setLoading(false);

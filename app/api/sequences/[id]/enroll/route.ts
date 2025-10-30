@@ -2,14 +2,21 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { addDays } from 'date-fns';
 import { validateRequest } from '@/lib/middleware/validate';
+import { logError } from '@/lib/logging';
+
 import { EnrollSequenceSchema } from '@/lib/validations/sequences';
 import { rateLimit, getClientIdentifier } from '@/lib/middleware/rate-limit-memory';
+import { getAuthContext, requireRole } from '@/lib/auth/context';
 
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    // Get authenticated user context and check permissions
+    const { tenantId, role } = await getAuthContext();
+    requireRole(role, 'MANAGER'); // Enrolling in sequences requires MANAGER role or higher
+
     // Rate limiting - Email sequence enrollment can trigger many scheduled emails
     const identifier = getClientIdentifier(request);
     const rateLimitResult = await rateLimit(identifier, 'bulk');
@@ -40,9 +47,9 @@ export async function POST(
     // Support both single and bulk enrollment
     const enrollmentList = enrollments || (companyId ? [{ companyId, contactId: contactId || null }] : []);
 
-    // Check if sequence exists and is active
-    const sequence = await prisma.emailSequence.findUnique({
-      where: { id: params.id },
+    // Check if sequence exists, is active, and belongs to tenant
+    const sequence = await prisma.emailSequence.findFirst({
+      where: { id: params.id, tenantId },
       include: { steps: { orderBy: { stepOrder: 'asc' } } }
     });
 
@@ -83,9 +90,9 @@ export async function POST(
           continue;
         }
 
-        // Get company info for personalization
-        const company = await prisma.company.findUnique({
-          where: { id: companyId },
+        // Get company info for personalization (must belong to same tenant)
+        const company = await prisma.company.findFirst({
+          where: { id: companyId, tenantId },
           include: { people: true }
         });
 
@@ -161,7 +168,7 @@ export async function POST(
 
         results.enrolled.push(enrollment);
       } catch (error) {
-        console.error(`Error enrolling company ${companyId}:`, error);
+        logError(`Error enrolling company ${companyId}:`, error);
         results.errors.push(`Failed to enroll company ${companyId}`);
       }
     }
@@ -175,7 +182,7 @@ export async function POST(
       data: results.enrolled
     });
   } catch (error) {
-    console.error('Error enrolling in sequence:', error);
+    logError('Error enrolling in sequence:', error);
     return NextResponse.json(
       { error: 'Failed to enroll in sequence' },
       { status: 500 }

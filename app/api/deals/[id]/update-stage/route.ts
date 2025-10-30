@@ -2,13 +2,19 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { onDealStageChange } from '@/lib/automations/deal-stage-triggers';
 import { validateRequest } from '@/lib/middleware/validate';
+import { logError } from '@/lib/logging';
+
 import { UpdateDealStageSchema } from '@/lib/validations/deals';
+import { getAuthContext } from '@/lib/auth/context';
 
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+
     // Validate request body
     const validation = await validateRequest(request, UpdateDealStageSchema);
     if ('error' in validation) {
@@ -17,8 +23,9 @@ export async function PATCH(
 
     const { stage, nextAction, lostReason } = validation.data;
 
-    const currentDeal = await prisma.deal.findUnique({
-      where: { id: params.id },
+    // Verify deal exists and belongs to tenant
+    const currentDeal = await prisma.deal.findFirst({
+      where: { id: params.id, tenantId },
     });
 
     if (!currentDeal) {
@@ -43,7 +50,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedDeal);
   } catch (error) {
-    console.error('Error updating deal stage:', error);
+    logError('Error updating deal stage:', error);
     return NextResponse.json(
       { error: 'Failed to update deal stage' },
       { status: 500 }

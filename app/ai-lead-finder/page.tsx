@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -57,7 +60,7 @@ export default function AILeadFinderPage() {
       setStep('review');
       toast.success(`Found ${data.companies.length} potential leads!`);
     } catch (error) {
-      console.error('Search error:', error);
+      logError('Search error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to find leads');
     } finally {
       setLoading(false);
@@ -95,7 +98,7 @@ export default function AILeadFinderPage() {
 
       router.push('/companies');
     } catch (error) {
-      console.error('Add error:', error);
+      logError('Add error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to add leads');
     } finally {
       setLoading(false);

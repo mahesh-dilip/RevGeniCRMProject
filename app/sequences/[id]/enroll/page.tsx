@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -60,7 +63,7 @@ export default function EnrollCompaniesPage({ params }: { params: { id: string }
       setSequence(sequenceData);
       setCompanies(companiesData);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logError('Error fetching data:', error);
       toast.error('Failed to load data');
       router.push('/sequences');
     } finally {
@@ -123,7 +126,7 @@ export default function EnrollCompaniesPage({ params }: { params: { id: string }
       toast.success(`Successfully enrolled ${selectedCompanies.size} ${selectedCompanies.size === 1 ? 'company' : 'companies'}!`);
       router.push(`/sequences/${params.id}`);
     } catch (error) {
-      console.error('Enrollment error:', error);
+      logError('Enrollment error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to enroll companies');
     } finally {
       setLoading(false);

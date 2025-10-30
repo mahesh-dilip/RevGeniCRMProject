@@ -707,6 +707,7 @@ async function main() {
   const sequences = await Promise.all([
     prisma.emailSequence.create({
       data: {
+        tenantId: 'demo-tenant',
         name: 'New Lead Nurture Sequence',
         description: 'Welcome series for newly discovered leads',
         active: true,
@@ -737,6 +738,7 @@ async function main() {
     }),
     prisma.emailSequence.create({
       data: {
+        tenantId: 'demo-tenant',
         name: 'Demo Follow-up Sequence',
         description: 'Post-demo engagement sequence',
         active: true,
@@ -767,6 +769,7 @@ async function main() {
     }),
     prisma.emailSequence.create({
       data: {
+        tenantId: 'demo-tenant',
         name: 'Re-engagement Sequence',
         description: 'For dormant leads that haven\'t responded',
         active: true,

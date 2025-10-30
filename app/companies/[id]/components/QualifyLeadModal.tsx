@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -53,7 +56,7 @@ export function QualifyLeadModal({ companyId, companyName, onClose }: QualifyLea
         onClose();
       }
     } catch (error) {
-      console.error('Error qualifying lead:', error);
+      logError('Error qualifying lead:', error);
       toast.error('Failed to qualify lead');
     } finally {
       setLoading(false);
@@ -85,7 +88,7 @@ export function QualifyLeadModal({ companyId, companyName, onClose }: QualifyLea
       router.refresh();
       onClose();
     } catch (error) {
-      console.error('Error disqualifying lead:', error);
+      logError('Error disqualifying lead:', error);
       toast.error('Failed to disqualify lead');
     } finally {
       setLoading(false);

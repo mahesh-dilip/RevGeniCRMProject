@@ -9,18 +9,49 @@ datasource db {
 }
 
 // ============================================
-// MULTI-TENANCY (Simple for Demo)
+// MULTI-TENANCY & USER MANAGEMENT
 // ============================================
+
+enum UserRole {
+  OWNER    // Full access + user management + billing
+  ADMIN    // Full access except user management
+  MANAGER  // Can use AI, bulk ops, delete records
+  USER     // Can create/edit, no delete or expensive ops
+  READONLY // View only
+}
 
 model Tenant {
   id        String   @id @default(cuid())
   name      String
+  domain    String?  @unique
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  users     User[]
   companies Company[]
   deals     Deal[]
   people    Person[]
   events    Event[]
+  sequences EmailSequence[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  firstName String?
+  lastName  String?
+  role      UserRole @default(USER)
+
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clerkId])
+  @@index([tenantId])
+  @@index([email])
 }
 
 // ============================================
@@ -29,7 +60,7 @@ model Tenant {
 
 model Company {
   id          String   @id @default(cuid())
-  tenantId    String   @default("demo-tenant")
+  tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
 
   name        String
@@ -72,7 +103,7 @@ model Company {
 
 model Person {
   id        String   @id @default(cuid())
-  tenantId  String   @default("demo-tenant")
+  tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
 
   firstName String
@@ -98,7 +129,7 @@ model Person {
 
 model Deal {
   id          String    @id @default(cuid())
-  tenantId    String    @default("demo-tenant")
+  tenantId    String
   tenant      Tenant    @relation(fields: [tenantId], references: [id])
 
   title       String
@@ -131,7 +162,7 @@ model Deal {
 
 model Event {
   id          String    @id @default(cuid())
-  tenantId    String    @default("demo-tenant")
+  tenantId    String
   tenant      Tenant    @relation(fields: [tenantId], references: [id])
 
   type        String
@@ -175,6 +206,9 @@ model Event {
 
 model EmailSequence {
   id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
   name        String
   description String?
   active      Boolean  @default(true)
@@ -187,6 +221,8 @@ model EmailSequence {
 
   steps       EmailSequenceStep[]
   enrollments SequenceEnrollment[]
+
+  @@index([tenantId])
 }
 
 model EmailSequenceStep {

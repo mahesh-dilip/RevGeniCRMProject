@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
@@ -24,7 +27,7 @@ export default function EventsPage() {
       const data = await response.json();
       setEvents(data);
     } catch (error) {
-      console.error('Error fetching events:', error);
+      logError('Error fetching events:', error);
       toast.error('Failed to load events');
     } finally {
       setLoading(false);
@@ -46,7 +49,7 @@ export default function EventsPage() {
       fetchEvents();
       toast.success(!currentStatus ? 'Event marked as completed' : 'Event marked as pending');
     } catch (error) {
-      console.error('Error updating event:', error);
+      logError('Error updating event:', error);
       toast.error('Failed to update event');
     }
   };

@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
+import { logError } from '@/lib/logging';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
+
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
@@ -63,7 +65,7 @@ export async function GET(request: Request) {
       deals
     });
   } catch (error) {
-    console.error('Search error:', error);
+    logError('Search error:', error);
     return NextResponse.json(
       { error: 'Search failed' },
       { status: 500 }

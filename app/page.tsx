@@ -1,3 +1,5 @@
+import { logError } from '@/lib/logging';
+
 import { Suspense } from 'react';
 import { prisma } from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -141,7 +143,7 @@ async function DashboardMetrics() {
       </>
     );
   } catch (error) {
-    console.error('Dashboard error:', error);
+    logError('Dashboard error:', error);
     return (
       <div className="p-4 bg-red-50 border border-red-200 rounded">
         <p className="text-red-600">Failed to load dashboard data. Please refresh.</p>

@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
@@ -21,7 +24,7 @@ export default function SequencesPage() {
       const data = await response.json();
       setSequences(data);
     } catch (error) {
-      console.error('Error fetching sequences:', error);
+      logError('Error fetching sequences:', error);
     } finally {
       setLoading(false);
     }

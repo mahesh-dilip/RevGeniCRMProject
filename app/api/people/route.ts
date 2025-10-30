@@ -2,13 +2,17 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateRequest } from '@/lib/middleware/validate';
 import { CreatePersonSchema } from '@/lib/validations/people';
+import { logError } from '@/lib/logging';
+
+import { getAuthContext } from '@/lib/auth/context';
 
 export async function GET(request: Request) {
   try {
+    const { tenantId } = await getAuthContext();
     const { searchParams } = new URL(request.url);
     const companyId = searchParams.get('companyId');
 
-    const where = companyId ? { companyId } : {};
+    const where = companyId ? { tenantId, companyId } : { tenantId };
 
     const people = await prisma.person.findMany({
       where,
@@ -31,7 +35,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(people);
   } catch (error) {
-    console.error('Error fetching people:', error);
+    logError('Error fetching people:', error);
     return NextResponse.json(
       { error: 'Failed to fetch people' },
       { status: 500 }
@@ -41,6 +45,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+
     // Validate request body
     const validation = await validateRequest(request, CreatePersonSchema);
     if ('error' in validation) {
@@ -51,6 +58,7 @@ export async function POST(request: Request) {
 
     const person = await prisma.person.create({
       data: {
+        tenantId,
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
@@ -71,7 +79,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(person);
   } catch (error) {
-    console.error('Error creating person:', error);
+    logError('Error creating person:', error);
     return NextResponse.json(
       { error: 'Failed to create person' },
       { status: 500 }

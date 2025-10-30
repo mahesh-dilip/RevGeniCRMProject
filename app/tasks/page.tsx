@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
@@ -23,7 +26,7 @@ export default function TasksPage() {
       const data = await response.json();
       setTasks(data);
     } catch (error) {
-      console.error('Error fetching tasks:', error);
+      logError('Error fetching tasks:', error);
       toast.error('Failed to load tasks');
     } finally {
       setLoading(false);
@@ -45,7 +48,7 @@ export default function TasksPage() {
       toast.success(currentStatus ? 'Task marked as incomplete' : 'Task completed!');
       fetchTasks();
     } catch (error) {
-      console.error('Error toggling task:', error);
+      logError('Error toggling task:', error);
       toast.error('Failed to update task');
     }
   };

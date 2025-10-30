@@ -2,14 +2,20 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateRequest } from '@/lib/middleware/validate';
 import { UpdateCompanySchema } from '@/lib/validations/companies';
+import { logError } from '@/lib/logging';
+
+import { getAuthContext, requireRole } from '@/lib/auth/context';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const company = await prisma.company.findUnique({
-      where: { id: params.id },
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+
+    const company = await prisma.company.findFirst({
+      where: { id: params.id, tenantId },
       include: {
         people: {
           orderBy: { createdAt: 'desc' },
@@ -44,7 +50,7 @@ export async function GET(
 
     return NextResponse.json(company);
   } catch (error) {
-    console.error('Error fetching company:', error);
+    logError('Error fetching company:', error);
     return NextResponse.json(
       { error: 'Failed to fetch company' },
       { status: 500 }
@@ -57,6 +63,9 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+
     // Validate request body
     const validation = await validateRequest(request, UpdateCompanySchema);
     if ('error' in validation) {
@@ -64,6 +73,18 @@ export async function PATCH(
     }
 
     const data = validation.data;
+
+    // Verify company exists and belongs to tenant
+    const existingCompany = await prisma.company.findFirst({
+      where: { id: params.id, tenantId },
+    });
+
+    if (!existingCompany) {
+      return NextResponse.json(
+        { error: 'Company not found' },
+        { status: 404 }
+      );
+    }
 
     const company = await prisma.company.update({
       where: { id: params.id },
@@ -81,7 +102,7 @@ export async function PATCH(
 
     return NextResponse.json(company);
   } catch (error) {
-    console.error('Error updating company:', error);
+    logError('Error updating company:', error);
     return NextResponse.json(
       { error: 'Failed to update company' },
       { status: 500 }
@@ -94,13 +115,29 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Get authenticated user context and check permissions
+    const { tenantId, role } = await getAuthContext();
+    requireRole(role, 'MANAGER'); // Deleting requires MANAGER role or higher
+
+    // Verify company exists and belongs to tenant
+    const existingCompany = await prisma.company.findFirst({
+      where: { id: params.id, tenantId },
+    });
+
+    if (!existingCompany) {
+      return NextResponse.json(
+        { error: 'Company not found' },
+        { status: 404 }
+      );
+    }
+
     await prisma.company.delete({
       where: { id: params.id },
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting company:', error);
+    logError('Error deleting company:', error);
     return NextResponse.json(
       { error: 'Failed to delete company' },
       { status: 500 }

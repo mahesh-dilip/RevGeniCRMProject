@@ -1,3 +1,5 @@
+import { logError } from '@/lib/logging';
+
 const STORAGE_KEY = 'crm_recently_viewed';
 const MAX_ITEMS = {
   companies: 5,
@@ -45,7 +47,7 @@ export function addRecentlyViewed(item: Omit<RecentItem, 'timestamp'>) {
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
-    console.error('Error saving recently viewed:', error);
+    logError('Error saving recently viewed:', error);
   }
 }
 
@@ -58,7 +60,7 @@ export function getRecentlyViewed(): RecentlyViewed {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored ? JSON.parse(stored) : { companies: [], deals: [], people: [] };
   } catch (error) {
-    console.error('Error getting recently viewed:', error);
+    logError('Error getting recently viewed:', error);
     return { companies: [], deals: [], people: [] };
   }
 }

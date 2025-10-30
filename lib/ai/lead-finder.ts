@@ -1,3 +1,5 @@
+import { logError } from '@/lib/logging';
+
 import Anthropic from '@anthropic-ai/sdk';
 import Exa from 'exa-js';
 import { withRetry } from '@/lib/utils/retry';
@@ -156,7 +158,7 @@ Rules:
       }
     }
   } catch (error) {
-    console.error('Error extracting lead data:', error);
+    logError('Error extracting lead data:', error);
   }
 
   return createFallbackLead(exaResult, criteria);

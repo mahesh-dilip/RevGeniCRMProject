@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
@@ -32,7 +35,7 @@ export default function ActivitiesPage() {
       const activitiesOnly = data.filter((event: any) => event.type !== 'task');
       setActivities(activitiesOnly);
     } catch (error) {
-      console.error('Error fetching activities:', error);
+      logError('Error fetching activities:', error);
       toast.error('Failed to load activities');
     } finally {
       setLoading(false);

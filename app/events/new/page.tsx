@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -51,7 +54,7 @@ function NewEventForm() {
       const companiesData = await companiesResponse.json();
       setCompanies(companiesData);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logError('Error fetching data:', error);
       toast.error('Failed to load data');
     }
   };
@@ -62,7 +65,7 @@ function NewEventForm() {
       const data = await response.json();
       setPeople(data);
     } catch (error) {
-      console.error('Error fetching people:', error);
+      logError('Error fetching people:', error);
     }
   };
 
@@ -72,7 +75,7 @@ function NewEventForm() {
       const data = await response.json();
       setDeals(data);
     } catch (error) {
-      console.error('Error fetching deals:', error);
+      logError('Error fetching deals:', error);
     }
   };
 
@@ -109,7 +112,7 @@ function NewEventForm() {
         router.push('/events');
       }
     } catch (error) {
-      console.error('Error creating event:', error);
+      logError('Error creating event:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create event');
     } finally {
       setLoading(false);

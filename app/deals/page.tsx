@@ -1,4 +1,7 @@
+
 'use client';
+
+import { logError } from '@/lib/logging';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -22,7 +25,7 @@ export default function DealsPage() {
       const data = await response.json();
       setDeals(data);
     } catch (error) {
-      console.error('Error fetching deals:', error);
+      logError('Error fetching deals:', error);
     } finally {
       setLoading(false);
     }

@@ -2,14 +2,20 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { onDealCreated } from '@/lib/automations/triggers';
 import { validateRequest } from '@/lib/middleware/validate';
+import { logError } from '@/lib/logging';
+
 import { CreateDealSchema } from '@/lib/validations/deals';
+import { getAuthContext } from '@/lib/auth/context';
 
 export async function GET(request: Request) {
   try {
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+
     const { searchParams } = new URL(request.url);
     const companyId = searchParams.get('companyId');
 
-    const where: any = {};
+    const where: any = { tenantId };
     if (companyId) {
       where.companyId = companyId;
     }
@@ -25,7 +31,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(deals);
   } catch (error) {
-    console.error('Error fetching deals:', error);
+    logError('Error fetching deals:', error);
     return NextResponse.json(
       { error: 'Failed to fetch deals' },
       { status: 500 }
@@ -35,6 +41,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+
     // Validate request body
     const validation = await validateRequest(request, CreateDealSchema);
     if ('error' in validation) {
@@ -45,6 +54,7 @@ export async function POST(request: Request) {
 
     const deal = await prisma.deal.create({
       data: {
+        tenantId,
         title: data.title,
         value: data.value,
         stage: data.stage || 'Prospecting',
@@ -65,6 +75,7 @@ export async function POST(request: Request) {
     // Create initial event
     await prisma.event.create({
       data: {
+        tenantId,
         type: 'note',
         title: `Deal created in ${deal.stage} stage`,
         description: `New deal "${deal.title}" created with ${deal.company.name}`,
@@ -79,7 +90,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(deal);
   } catch (error) {
-    console.error('Error creating deal:', error);
+    logError('Error creating deal:', error);
     return NextResponse.json(
       { error: 'Failed to create deal' },
       { status: 500 }

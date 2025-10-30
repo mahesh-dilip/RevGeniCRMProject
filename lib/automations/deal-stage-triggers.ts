@@ -23,6 +23,7 @@ export async function onDealStageChange(
 
   await prisma.event.create({
     data: {
+      tenantId: deal.tenantId,
       type: 'note',
       title: `Deal moved to ${newStage}`,
       description: `Deal stage changed from ${oldStage} to ${newStage}`,
@@ -53,6 +54,7 @@ async function handleDemoStage(deal: any) {
 
   await prisma.event.create({
     data: {
+      tenantId: deal.tenantId,
       type: 'task',
       title: 'Prepare demo environment',
       description: 'Set up demo for client presentation',
@@ -75,6 +77,7 @@ async function handleProposalStage(deal: any) {
 
   await prisma.event.create({
     data: {
+      tenantId: deal.tenantId,
       type: 'task',
       title: 'Follow up on proposal',
       description: 'Check if client has reviewed the proposal',
@@ -111,6 +114,7 @@ async function handleWonStage(deal: any) {
 
   await prisma.event.create({
     data: {
+      tenantId: deal.tenantId,
       type: 'note',
       title: '🎉 Deal Won!',
       description: `Successfully closed deal worth $${deal.value || 0}`,
@@ -126,6 +130,7 @@ async function handleLostStage(deal: any) {
 
   await prisma.event.create({
     data: {
+      tenantId: deal.tenantId,
       type: 'note',
       title: 'Deal marked as Lost',
       description: deal.lostReason || 'No reason specified',

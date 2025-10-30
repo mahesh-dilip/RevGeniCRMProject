@@ -2,12 +2,19 @@ import { NextResponse } from 'next/server';
 import { findLeads } from '@/lib/ai/lead-finder';
 import { prisma } from '@/lib/prisma';
 import { checkForDuplicate } from '@/lib/security/duplicate-detection';
+import { logError } from '@/lib/logging';
+
 import { validateRequest } from '@/lib/middleware/validate';
 import { FindLeadsSchema } from '@/lib/validations/ai';
 import { rateLimit, getClientIdentifier } from '@/lib/middleware/rate-limit-memory';
+import { getAuthContext, requireRole } from '@/lib/auth/context';
 
 export async function POST(request: Request) {
   try {
+    // Get authenticated user context and check permissions
+    const { tenantId, role } = await getAuthContext();
+    requireRole(role, 'MANAGER'); // AI operations require MANAGER role or higher
+
     // Rate limiting - AI endpoints are expensive (OpenAI + Exa API)
     const identifier = getClientIdentifier(request);
     const rateLimitResult = await rateLimit(identifier, 'ai');
@@ -72,6 +79,7 @@ export async function POST(request: Request) {
 
         const company = await prisma.company.create({
           data: {
+            tenantId,
             name: lead.name,
             website: lead.website,
             industry: lead.industry,
@@ -101,7 +109,7 @@ export async function POST(request: Request) {
       skippedDuplicates: skippedDuplicates,
     });
   } catch (error) {
-    console.error('❌ AI lead generation error:', error);
+    logError('❌ AI lead generation error:', error);
     return NextResponse.json(
       {
         error: 'Failed to generate leads',
