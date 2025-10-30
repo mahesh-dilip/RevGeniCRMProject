@@ -85,15 +85,14 @@ npx prisma db push  # Already applied
 
 ---
 
-### 4. Rate Limiting (In-Memory)
+### 4. Rate Limiting with Upstash
 
-**Status:** ✅ Implemented
+**Status:** ✅ Implemented (requires Redis credentials)
 
 **What was done:**
-- Created in-memory rate limiting system
-- No external dependencies required
-- Automatic cleanup of expired entries
-- Fast, zero-latency rate limiting
+- Installed `@upstash/ratelimit` and `@upstash/redis`
+- Created rate limiters for different operation types
+- Graceful degradation: if Redis not configured, allows all requests in dev
 
 **Rate limits:**
 - AI operations: 5 requests/minute per user
@@ -101,14 +100,16 @@ npx prisma db push  # Already applied
 - Sequence enrollment: 10 requests/hour per user
 - Standard API: 60 requests/minute per user
 
-**Implementation details:**
-- Uses JavaScript Map for in-memory storage
-- Limits reset on server restart (acceptable for most use cases)
-- Automatic cleanup every 5 minutes to prevent memory leaks
-- Per-instance limits in multi-server deployments (more protective)
+**Environment variables needed:**
+```env
+UPSTASH_REDIS_REST_URL=https://YOUR_URL.upstash.io
+UPSTASH_REDIS_REST_TOKEN=YOUR_TOKEN_HERE
+```
+
+Get free Redis from: https://console.upstash.com
 
 **Files created:**
-- `lib/middleware/rate-limit.ts` - In-memory rate limiting implementation
+- `lib/middleware/rate-limit.ts` - Rate limiting functions
 
 ---
 
@@ -135,60 +136,73 @@ npx prisma db push  # Already applied
 
 ---
 
-## ✅ ALL ROUTES SECURED (16/16) 🎉
+## ✅ ROUTES UPDATED (5/16)
 
 ### Fully Secured Routes:
 
 1. **POST /api/ai/find-leads**
-   - ✅ Authentication, Rate limiting (AI), Permission, Validation, Tenant isolation
+   - ✅ Authentication
+   - ✅ Rate limiting (AI tier)
+   - ✅ Permission: `USE_AI_LEAD_FINDER`
+   - ✅ Zod validation
+   - ✅ Tenant isolation
 
 2. **POST /api/companies/bulk-create**
-   - ✅ Authentication, Rate limiting (bulk), Permission, Validation, Tenant isolation
+   - ✅ Authentication
+   - ✅ Rate limiting (bulk tier)
+   - ✅ Permission: `BULK_CREATE`
+   - ✅ Zod validation
+   - ✅ Tenant isolation
 
 3. **GET /api/companies**
-   - ✅ Authentication, Rate limiting (API), Permission, Tenant isolation
+   - ✅ Authentication
+   - ✅ Rate limiting (API tier)
+   - ✅ Permission: `VIEW_ALL_DATA`
+   - ✅ Tenant isolation
 
 4. **POST /api/companies**
-   - ✅ Authentication, Rate limiting (API), Permission, Validation, Tenant isolation
+   - ✅ Authentication
+   - ✅ Rate limiting (API tier)
+   - ✅ Permission: `CREATE_COMPANY`
+   - ✅ Zod validation
+   - ✅ Tenant isolation
 
-5. **GET/PUT/DELETE /api/companies/[id]**
-   - ✅ Authentication, Permission, Validation, Tenant isolation, Next.js 16 async params
+5. **GET/POST /api/events**
+   - ✅ Authentication
+   - ✅ Rate limiting (API tier)
+   - ✅ Permissions: `VIEW_ALL_DATA` / `CREATE_EVENT`
+   - ✅ Zod validation
+   - ✅ Tenant isolation
 
-6. **POST /api/companies/[id]/convert-to-deal**
-   - ✅ Next.js 16 async params fixed
+---
 
-7. **GET/POST /api/people**
-   - ✅ Authentication, Rate limiting (API), Permission, Validation, Tenant isolation
+## ⚠️ ROUTES PENDING UPDATE (11/16)
 
-8. **GET/PUT/DELETE /api/people/[id]**
-   - ✅ Authentication, Permission, Validation, Tenant isolation, Next.js 16 async params
+These routes need to be updated with the same security pattern:
 
-9. **GET/POST /api/deals**
-   - ✅ Authentication, Rate limiting (API), Permission, Validation, Tenant isolation
+### Companies:
+- [ ] `GET/PUT /api/companies/[id]`
+- [X] `POST /api/companies/[id]/convert-to-deal` (params fixed for Next.js 16)
 
-10. **PUT /api/deals/[id]/update-stage**
-    - ✅ Authentication, Permission, Validation, Tenant isolation, Next.js 16 async params
+### People:
+- [ ] `GET/POST /api/people`
+- [ ] `GET/PUT/DELETE /api/people/[id]`
 
-11. **GET/POST /api/events**
-    - ✅ Authentication, Rate limiting (API), Permission, Validation, Tenant isolation
+### Deals:
+- [ ] `GET/POST /api/deals`
+- [ ] `PUT /api/deals/[id]/update-stage`
 
-12. **GET/PUT/DELETE /api/events/[id]**
-    - ✅ Authentication, Permission, Validation, Tenant isolation, Next.js 16 async params
+### Events:
+- [ ] `GET/PUT/DELETE /api/events/[id]`
+- [ ] `POST /api/events/quick-log`
 
-13. **POST /api/events/quick-log**
-    - ✅ Authentication, Rate limiting (API), Permission, Validation, Tenant isolation
+### Sequences:
+- [ ] `GET/POST /api/sequences`
+- [ ] `GET/PUT/DELETE /api/sequences/[id]`
+- [ ] `POST /api/sequences/[id]/enroll`
 
-14. **GET/POST /api/sequences**
-    - ✅ Authentication, Rate limiting (API), Permission, Validation
-
-15. **GET/PUT/DELETE /api/sequences/[id]**
-    - ✅ Authentication, Permission, Validation, Next.js 16 async params
-
-16. **GET /api/search**
-    - ✅ Authentication, Rate limiting (API), Permission, Tenant isolation
-
-17. **POST /api/sequences/[id]/enroll**
-    - ✅ Authentication, Rate limiting (sequences), Permission, Validation, Tenant isolation, Next.js 16 async params
+### Search:
+- [ ] `GET /api/search`
 
 ---
 
@@ -372,8 +386,8 @@ import '@testing-library/jest-dom';
 
 Before deploying to production:
 
-- [X] Complete all 16 API route updates ✅
-- [X] Set up rate limiting (in-memory) ✅
+- [ ] Complete all 16 API route updates
+- [ ] Set up Upstash Redis and add credentials
 - [ ] Set up Sentry and add DSN
 - [ ] Test all permission levels (create test users with different roles)
 - [ ] Verify tenant isolation (create multiple tenants)
@@ -391,17 +405,16 @@ Before deploying to production:
 
 **Immediate priority:**
 
-1. ✅ ~~Fix all dynamic routes for Next.js 16 async params~~ COMPLETE
-2. ✅ ~~Update all 16 API routes with security wrappers~~ COMPLETE
-3. ✅ ~~Implement rate limiting~~ COMPLETE (in-memory)
-4. **Test the application end-to-end with authentication**
-5. **Test rate limiting** (try exceeding limits to see 429 responses)
+1. Fix remaining 6 dynamic routes for Next.js 16 async params
+2. Update remaining 11 API routes with security wrappers
+3. Test the application end-to-end with authentication
 
 **Then:**
 
-6. Set up Sentry account
-7. Set up React Query provider
-8. Write critical path tests with Vitest
+4. Set up Upstash Redis account
+5. Set up Sentry account
+6. Set up React Query provider
+7. Write critical path tests
 
 ---
 
@@ -427,16 +440,17 @@ Before deploying to production:
 4. Test that only MANAGER+ can bulk import
 
 ### Test Rate Limiting:
+(Only works after Upstash is configured)
 1. Make 6 rapid AI lead finder requests
 2. 6th request should return 429 rate limit error
 3. Wait 60 seconds, should work again
-4. Check response headers for rate limit info
 
 ---
 
 ## 📚 ADDITIONAL RESOURCES
 
 - **Clerk Docs:** https://clerk.com/docs
+- **Upstash Redis:** https://docs.upstash.com/redis
 - **Sentry:** https://docs.sentry.io/platforms/javascript/guides/nextjs/
 - **React Query:** https://tanstack.com/query/latest/docs/framework/react/overview
 - **Vitest:** https://vitest.dev/guide/
@@ -445,6 +459,5 @@ Before deploying to production:
 ---
 
 **Generated:** 2025-01-30
-**Updated:** 2025-10-30
-**Status:** ✅ Phase 1 & 2 COMPLETE - All 16 API routes secured with Authentication, Multi-tenancy, Validation, In-Memory Rate Limiting, RBAC, and Tenant Isolation
-**Next:** Phase 3 (Sentry, React Query, Vitest)
+**Status:** Phase 1 Complete (Authentication, Multi-tenancy, Validation, Rate Limiting, RBAC)
+**Next:** Complete remaining API routes + Phase 2/3

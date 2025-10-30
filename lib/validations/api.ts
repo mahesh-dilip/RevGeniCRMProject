@@ -70,7 +70,7 @@ export const UpdateDealStageSchema = z.object({
 // EVENT VALIDATIONS
 // ============================================
 
-const BaseEventSchema = z.object({
+export const CreateEventSchema = z.object({
   type: z.enum(['call', 'email', 'meeting', 'note', 'task']),
   title: z.string().min(1, 'Event title is required').max(200),
   description: z.string().max(5000).optional().nullable(),
@@ -82,14 +82,12 @@ const BaseEventSchema = z.object({
   companyId: z.string().cuid('Invalid company ID').optional().nullable(),
   personId: z.string().cuid('Invalid person ID').optional().nullable(),
   dealId: z.string().cuid('Invalid deal ID').optional().nullable(),
-});
-
-export const CreateEventSchema = BaseEventSchema.refine(
+}).refine(
   (data) => data.companyId || data.personId || data.dealId,
   'Event must be linked to at least one of: company, person, or deal'
 );
 
-export const UpdateEventSchema = BaseEventSchema.omit({ type: true }).partial();
+export const UpdateEventSchema = CreateEventSchema.partial().omit({ type: true });
 
 export const QuickLogEventSchema = z.object({
   type: z.enum(['call', 'email', 'meeting', 'note']),
@@ -120,12 +118,7 @@ export const CreateSequenceSchema = z.object({
 export const UpdateSequenceSchema = CreateSequenceSchema.partial();
 
 export const EnrollSequenceSchema = z.object({
-  companyId: z.string().cuid('Invalid company ID').optional(),
-  contactId: z.string().cuid('Invalid contact ID').optional().nullable(),
-  enrollments: z.array(z.object({
-    companyId: z.string().cuid('Invalid company ID'),
-    contactId: z.string().cuid('Invalid contact ID').optional().nullable(),
-  })).optional(),
+  companyId: z.string().cuid('Invalid company ID'),
 });
 
 // ============================================

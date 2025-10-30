@@ -1,24 +1,16 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { onDealStageChange } from '@/lib/automations/deal-stage-triggers';
-import { getAuthContext } from '@/lib/auth/context';
-import { requirePermission } from '@/lib/auth/permissions';
-import { validateRequest, UpdateDealStageSchema } from '@/lib/validations/api';
 
-export async function PUT(
+export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const authContext = await getAuthContext();
-    requirePermission(authContext, 'UPDATE_DEAL');
+    const { stage, nextAction, lostReason } = await request.json();
 
-    const { id } = await params;
-    const data = await validateRequest(request, UpdateDealStageSchema);
-
-    // Verify deal belongs to user's tenant
-    const currentDeal = await prisma.deal.findFirst({
-      where: { id, tenantId: authContext.tenantId },
+    const currentDeal = await prisma.deal.findUnique({
+      where: { id: params.id },
     });
 
     if (!currentDeal) {
@@ -26,10 +18,11 @@ export async function PUT(
     }
 
     const updatedDeal = await prisma.deal.update({
-      where: { id },
+      where: { id: params.id },
       data: {
-        stage: data.stage,
-        lostReason: data.lostReason,
+        stage,
+        nextAction,
+        lostReason,
         stageChangedAt: new Date(),
       },
       include: {
@@ -38,17 +31,14 @@ export async function PUT(
       },
     });
 
-    // Trigger stage change automations
-    await onDealStageChange(id, currentDeal.stage, data.stage);
+    await onDealStageChange(params.id, currentDeal.stage, stage);
 
     return NextResponse.json(updatedDeal);
   } catch (error) {
     console.error('Error updating deal stage:', error);
-    const status = error instanceof Error && error.message.includes('Forbidden') ? 403 : 
-                   error instanceof Error && error.message.includes('Validation') ? 400 : 500;
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update deal stage' },
-      { status }
+      { error: 'Failed to update deal stage' },
+      { status: 500 }
     );
   }
 }
