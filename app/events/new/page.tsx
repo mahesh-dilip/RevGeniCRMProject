@@ -127,9 +127,27 @@ function NewEventForm() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Add New Event</h1>
-        <p className="text-gray-600 mt-1">Track activities, tasks, and interactions</p>
+        <h1 className="text-3xl font-bold">Log an Activity</h1>
+        <p className="text-gray-600 mt-1">
+          Record past interactions, tasks, and communications with customers
+        </p>
       </div>
+
+      <Card className="bg-blue-50 border-l-4 border-blue-500">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">ℹ️</span>
+            <div>
+              <h3 className="font-semibold text-blue-900 mb-1">What are Events?</h3>
+              <p className="text-sm text-blue-800">
+                Events are records of all your customer interactions and activities. This includes calls you've made,
+                emails you've sent, meetings you've had, and tasks you need to complete. All event types are tracked
+                in the activity timeline.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -139,6 +157,10 @@ function NewEventForm() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="type">Event Type *</Label>
+              <p className="text-xs text-gray-500 mt-1 mb-3">
+                Select the type of activity you want to log. <strong>Note:</strong> "Task" is an event type for
+                to-do items and action items, just like calls, emails, and meetings.
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                 {eventTypes.map((type) => (
                   <button
@@ -207,11 +229,18 @@ function NewEventForm() {
             </div>
 
             <div className="border-t pt-4">
-              <h3 className="font-semibold mb-3">Link to Records (Optional)</h3>
+              <h3 className="font-semibold mb-2">Link to Records (Optional)</h3>
+              <p className="text-xs text-gray-500 mb-4">
+                Link this activity to a company, contact, or deal. This helps track all interactions
+                in one place and builds a complete activity timeline.
+              </p>
 
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="companyId">Company</Label>
+                  <p className="text-xs text-gray-500 mt-1 mb-2">
+                    The company this activity is related to
+                  </p>
                   <select
                     id="companyId"
                     value={formData.companyId}
@@ -230,7 +259,10 @@ function NewEventForm() {
                 {formData.companyId && (
                   <>
                     <div>
-                      <Label htmlFor="personId">Person</Label>
+                      <Label htmlFor="personId">Contact (Person)</Label>
+                      <p className="text-xs text-gray-500 mt-1 mb-2">
+                        The specific person at the company (optional)
+                      </p>
                       <select
                         id="personId"
                         value={formData.personId}
@@ -247,13 +279,17 @@ function NewEventForm() {
                       </select>
                       {people.length === 0 && (
                         <p className="text-xs text-gray-500 mt-1">
-                          No people found for this company
+                          No contacts found for this company
                         </p>
                       )}
                     </div>
 
                     <div>
-                      <Label htmlFor="dealId">Deal</Label>
+                      <Label htmlFor="dealId">Deal (Optional)</Label>
+                      <p className="text-xs text-gray-500 mt-1 mb-2">
+                        If this activity is related to a specific sales opportunity, select the deal.
+                        This helps track all deal-related activities in one timeline.
+                      </p>
                       <select
                         id="dealId"
                         value={formData.dealId}
@@ -264,7 +300,7 @@ function NewEventForm() {
                         <option value="">None</option>
                         {deals.map((deal) => (
                           <option key={deal.id} value={deal.id}>
-                            {deal.title}
+                            {deal.title} - {deal.stage}
                           </option>
                         ))}
                       </select>

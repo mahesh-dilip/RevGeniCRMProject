@@ -237,25 +237,28 @@ export default async function DealDetailPage({
           {/* Quick Actions - Compact Grid */}
           <Card className="p-4">
             <h3 className="font-semibold mb-3 text-sm">Quick Actions</h3>
+            <p className="text-xs text-gray-500 mb-3">
+              Log past activities related to this deal
+            </p>
             <div className="grid grid-cols-2 gap-2">
               <Link href={`/events/new?dealId=${deal.id}&companyId=${deal.companyId}&type=call`}>
                 <Button variant="outline" size="sm" className="w-full">
-                  📞 Call
+                  📞 Log Call
                 </Button>
               </Link>
               <Link href={`/events/new?dealId=${deal.id}&companyId=${deal.companyId}&type=meeting`}>
                 <Button variant="outline" size="sm" className="w-full">
-                  🤝 Meeting
+                  🤝 Log Meeting
                 </Button>
               </Link>
               <Link href={`/events/new?dealId=${deal.id}&companyId=${deal.companyId}&type=email`}>
                 <Button variant="outline" size="sm" className="w-full">
-                  📧 Email
+                  📧 Log Email
                 </Button>
               </Link>
               <Link href={`/events/new?dealId=${deal.id}&companyId=${deal.companyId}&type=task`}>
                 <Button variant="outline" size="sm" className="w-full">
-                  ✅ Task
+                  ✅ Log Task
                 </Button>
               </Link>
             </div>

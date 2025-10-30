@@ -60,6 +60,12 @@ export default async function SequenceDetailPage({
           <Link href="/sequences">
             <Button variant="outline">← Back to Sequences</Button>
           </Link>
+          <Link href={`/sequences/${sequence.id}/edit`}>
+            <Button variant="outline">✏️ Edit</Button>
+          </Link>
+          <Link href={`/sequences/${sequence.id}/enroll`}>
+            <Button>+ Enroll Companies</Button>
+          </Link>
         </div>
       </div>
 

@@ -216,16 +216,15 @@ export default function EventsPage() {
                       </td>
                       <td className="p-4">
                         <div className="flex gap-2 justify-end">
-                          {event.type === 'task' && (
-                            <Button
-                              size="sm"
-                              variant={event.completed ? 'outline' : 'default'}
-                              onClick={() => handleToggleComplete(event.id, event.completed)}
-                            >
-                              {event.completed ? '↩' : '✓'}
-                            </Button>
-                          )}
-                          <Link href={`/companies/${event.companyId}`}>
+                          <Button
+                            size="sm"
+                            variant={event.completed ? 'outline' : 'default'}
+                            onClick={() => handleToggleComplete(event.id, event.completed)}
+                            title={event.completed ? 'Mark as incomplete' : 'Mark as complete'}
+                          >
+                            {event.completed ? '↩' : '✓'}
+                          </Button>
+                          <Link href={`/events/${event.id}`}>
                             <Button variant="outline" size="sm">View</Button>
                           </Link>
                         </div>

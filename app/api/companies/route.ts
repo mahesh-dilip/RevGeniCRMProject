@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const includePeople = searchParams.get('includePeople') === 'true';
+
     const companies = await prisma.company.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
+        ...(includePeople && { people: true }),
         _count: {
           select: {
             deals: true,

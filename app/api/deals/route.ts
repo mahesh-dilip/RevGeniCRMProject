@@ -2,9 +2,18 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { onDealCreated } from '@/lib/automations/triggers';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const companyId = searchParams.get('companyId');
+
+    const where: any = {};
+    if (companyId) {
+      where.companyId = companyId;
+    }
+
     const deals = await prisma.deal.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       include: {
         company: true,

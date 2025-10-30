@@ -272,7 +272,7 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
                   </Link>
                   <Link href={`/events/new?companyId=${company.id}`}>
                     <Button variant="outline" size="sm" className="w-full">
-                      📅 Add Event
+                      📅 Log Activity
                     </Button>
                   </Link>
                 </CardContent>
