@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 export default function PeoplePage() {
   const [people, setPeople] = useState<any[]>([]);
@@ -40,9 +40,12 @@ export default function PeoplePage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">People</h1>
+        <div>
+          <h1 className="text-3xl font-bold">People</h1>
+          <p className="text-gray-600">{people.length} contacts in your CRM</p>
+        </div>
         <Link href="/people/new">
-          <Button>Add Person</Button>
+          <Button>+ Add Contact</Button>
         </Link>
       </div>
 
@@ -60,100 +63,95 @@ export default function PeoplePage() {
         <div className="text-center py-12 text-gray-600">Loading...</div>
       )}
 
-      {!loading && people.length === 0 && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-gray-600 mb-4">
-              No people yet. Start by adding your first contact!
-            </p>
-            <Link href="/people/new">
-              <Button>Add First Person</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      )}
-
-      {!loading && people.length > 0 && (
-        <div className="space-y-4">
-          <div className="text-sm text-gray-600">
-            Showing {filteredPeople.length} of {people.length} people
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredPeople.map((person) => (
-              <Card key={person.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="font-semibold text-lg">
-                        {person.firstName} {person.lastName}
-                      </h3>
-                      {person.title && (
-                        <p className="text-sm text-gray-600">{person.title}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <Link href={`/companies/${person.company.id}`}>
-                    <div className="text-sm text-blue-600 hover:underline mb-3">
-                      🏢 {person.company.name}
-                    </div>
-                  </Link>
-
-                  <div className="space-y-1 text-sm mb-3">
-                    {person.email && (
-                      <div className="flex items-center gap-2">
-                        <span>📧</span>
-                        <a href={`mailto:${person.email}`} className="text-blue-600 hover:underline truncate">
-                          {person.email}
-                        </a>
-                      </div>
-                    )}
-                    {person.phone && (
-                      <div className="flex items-center gap-2">
-                        <span>📞</span>
-                        <span>{person.phone}</span>
-                      </div>
-                    )}
-                    {person.linkedin && (
-                      <div className="flex items-center gap-2">
-                        <span>🔗</span>
-                        <a
-                          href={person.linkedin}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline truncate"
+      {!loading && (
+        <>
+          <Card>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="text-left p-4 font-semibold text-sm">Name</th>
+                    <th className="text-left p-4 font-semibold text-sm">Title</th>
+                    <th className="text-left p-4 font-semibold text-sm">Company</th>
+                    <th className="text-left p-4 font-semibold text-sm">Email</th>
+                    <th className="text-left p-4 font-semibold text-sm">Phone</th>
+                    <th className="text-center p-4 font-semibold text-sm">Activities</th>
+                    <th className="text-center p-4 font-semibold text-sm">Deals</th>
+                    <th className="text-right p-4 font-semibold text-sm">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPeople.map((person) => (
+                    <tr key={person.id} className="border-b hover:bg-gray-50">
+                      <td className="p-4">
+                        <Link
+                          href={`/people/${person.id}`}
+                          className="font-medium hover:text-blue-600"
                         >
-                          LinkedIn
-                        </a>
-                      </div>
-                    )}
-                  </div>
+                          {person.firstName} {person.lastName}
+                        </Link>
+                      </td>
+                      <td className="p-4 text-sm">{person.title || '-'}</td>
+                      <td className="p-4">
+                        <Link
+                          href={`/companies/${person.company.id}`}
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          {person.company.name}
+                        </Link>
+                      </td>
+                      <td className="p-4">
+                        {person.email ? (
+                          <a href={`mailto:${person.email}`} className="text-sm text-blue-600 hover:underline">
+                            {person.email}
+                          </a>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        {person.phone ? (
+                          <a href={`tel:${person.phone}`} className="text-sm text-blue-600 hover:underline">
+                            {person.phone}
+                          </a>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-center text-sm">{person._count?.events || 0}</td>
+                      <td className="p-4 text-center text-sm">{person._count?.primaryDeals || 0}</td>
+                      <td className="p-4">
+                        <div className="flex gap-2 justify-end">
+                          <Link href={`/people/${person.id}`}>
+                            <Button variant="outline" size="sm">View</Button>
+                          </Link>
+                          <Link href={`/events/new?personId=${person.id}`}>
+                            <Button size="sm">+ Activity</Button>
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-                  {person._count && (
-                    <div className="flex gap-4 text-xs text-gray-500 mb-3 pt-3 border-t">
-                      <span>💼 {person._count.primaryDeals} deals</span>
-                      <span>📅 {person._count.events} events</span>
-                    </div>
+              {filteredPeople.length === 0 && (
+                <div className="text-center py-12 text-gray-500">
+                  {people.length === 0 ? (
+                    <>
+                      <p className="mb-4">No contacts yet.</p>
+                      <Link href="/people/new">
+                        <Button>+ Add Your First Contact</Button>
+                      </Link>
+                    </>
+                  ) : (
+                    <p>No contacts match your search.</p>
                   )}
-
-                  <div className="flex gap-2">
-                    <Link href={`/people/${person.id}`} className="flex-1">
-                      <Button size="sm" variant="outline" className="w-full">
-                        View Details
-                      </Button>
-                    </Link>
-                    <Link href={`/people/${person.id}/edit`}>
-                      <Button size="sm" variant="outline">
-                        Edit
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        </>
       )}
     </div>
   );

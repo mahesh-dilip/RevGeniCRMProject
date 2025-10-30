@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { format } from 'date-fns';
 
 export default function EventsPage() {
   const [events, setEvents] = useState<any[]>([]);
@@ -50,24 +51,12 @@ export default function EventsPage() {
     }
   };
 
-  const getEventIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      call: '📞',
-      email: '📧',
-      meeting: '🤝',
-      task: '✅',
-      note: '📝',
-    };
-    return icons[type] || '📅';
-  };
-
-  const getPriorityVariant = (priority: string) => {
-    const variants: Record<string, any> = {
-      high: 'destructive',
-      medium: 'secondary',
-      low: 'default',
-    };
-    return variants[priority] || 'default';
+  const EVENT_ICONS: Record<string, string> = {
+    call: '📞',
+    email: '📧',
+    meeting: '🤝',
+    task: '✅',
+    note: '📝',
   };
 
   const filteredEvents = events.filter(event => {
@@ -80,13 +69,16 @@ export default function EventsPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Events & Activities</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Events & Activities</h1>
+          <p className="text-gray-600">{events.length} activities tracked</p>
+        </div>
         <Link href="/events/new">
-          <Button>Add Event</Button>
+          <Button>+ Log Activity</Button>
         </Link>
       </div>
 
-      <div className="flex gap-4 items-center">
+      <div className="flex gap-4 items-center flex-wrap">
         <div className="flex gap-2">
           <Button
             variant={filter === 'all' ? 'default' : 'outline'}
@@ -131,106 +123,135 @@ export default function EventsPage() {
         <div className="text-center py-12 text-gray-600">Loading events...</div>
       )}
 
-      {!loading && events.length === 0 && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-gray-600 mb-4">
-              No events yet. Start tracking your activities!
-            </p>
-            <Link href="/events/new">
-              <Button>Add First Event</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      )}
-
-      {!loading && events.length > 0 && (
-        <div className="space-y-4">
-          <div className="text-sm text-gray-600">
-            Showing {filteredEvents.length} of {events.length} events
-          </div>
-
-          {filteredEvents.map((event) => (
-            <Card
-              key={event.id}
-              className={`transition-all ${
-                event.completed ? 'bg-gray-50 opacity-75' : ''
-              }`}
-            >
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-4">
-                  <div className="text-3xl">{getEventIcon(event.type)}</div>
-
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className={`font-semibold text-lg ${
-                            event.completed ? 'line-through text-gray-500' : ''
-                          }`}>
-                            {event.title}
-                          </h3>
-                          {event.priority && (
-                            <Badge variant={getPriorityVariant(event.priority)}>
-                              {event.priority}
-                            </Badge>
+      {!loading && (
+        <>
+          <Card>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="text-left p-4 font-semibold text-sm">Type</th>
+                    <th className="text-left p-4 font-semibold text-sm">Title</th>
+                    <th className="text-left p-4 font-semibold text-sm">Related To</th>
+                    <th className="text-left p-4 font-semibold text-sm">Due Date</th>
+                    <th className="text-left p-4 font-semibold text-sm">Status</th>
+                    <th className="text-right p-4 font-semibold text-sm">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEvents.map((event) => (
+                    <tr key={event.id} className={`border-b hover:bg-gray-50 ${event.completed ? 'opacity-60' : ''}`}>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{EVENT_ICONS[event.type] || '📋'}</span>
+                          <span className="text-sm capitalize">{event.type}</span>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className={event.completed ? 'line-through text-gray-500' : ''}>
+                          <p className="font-medium">{event.title}</p>
+                          {event.description && (
+                            <p className="text-sm text-gray-500 line-clamp-1 mt-1">
+                              {event.description}
+                            </p>
                           )}
                         </div>
-
-                        {event.description && (
-                          <p className="text-sm text-gray-600 mb-2">
-                            {event.description}
-                          </p>
-                        )}
-
-                        <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                      </td>
+                      <td className="p-4 text-sm">
+                        <div className="space-y-1">
                           {event.company && (
-                            <Link href={`/companies/${event.company.id}`}>
-                              <span className="text-blue-600 hover:underline">
-                                🏢 {event.company.name}
-                              </span>
+                            <Link
+                              href={`/companies/${event.company.id}`}
+                              className="block text-blue-600 hover:underline"
+                            >
+                              🏢 {event.company.name}
                             </Link>
                           )}
                           {event.person && (
-                            <span>
+                            <div className="text-gray-600">
                               👤 {event.person.firstName} {event.person.lastName}
-                            </span>
+                            </div>
                           )}
                           {event.deal && (
-                            <Link href={`/deals/${event.deal.id}`}>
-                              <span className="text-blue-600 hover:underline">
-                                💼 {event.deal.title}
-                              </span>
+                            <Link
+                              href={`/deals/${event.deal.id}`}
+                              className="block text-blue-600 hover:underline"
+                            >
+                              💼 {event.deal.title}
                             </Link>
                           )}
-                          {event.dueDate && (
-                            <span className={
-                              new Date(event.dueDate) < new Date() && !event.completed
-                                ? 'text-red-600 font-semibold'
-                                : ''
-                            }>
-                              📅 {new Date(event.dueDate).toLocaleDateString()}
-                            </span>
-                          )}
                         </div>
-                      </div>
+                      </td>
+                      <td className="p-4 text-sm">
+                        {event.dueDate ? (
+                          <span className={
+                            new Date(event.dueDate) < new Date() && !event.completed
+                              ? 'text-red-600 font-medium'
+                              : 'text-gray-600'
+                          }>
+                            {format(new Date(event.dueDate), 'MMM d, yyyy')}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        {event.type === 'task' && (
+                          <Badge variant={event.completed ? 'default' : 'secondary'}>
+                            {event.completed ? '✓ Done' : 'Open'}
+                          </Badge>
+                        )}
+                        {event.priority && event.type === 'task' && !event.completed && (
+                          <Badge
+                            variant={
+                              event.priority === 'high' ? 'destructive' :
+                              event.priority === 'medium' ? 'default' :
+                              'secondary'
+                            }
+                            className="ml-2"
+                          >
+                            {event.priority}
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex gap-2 justify-end">
+                          {event.type === 'task' && (
+                            <Button
+                              size="sm"
+                              variant={event.completed ? 'outline' : 'default'}
+                              onClick={() => handleToggleComplete(event.id, event.completed)}
+                            >
+                              {event.completed ? '↩' : '✓'}
+                            </Button>
+                          )}
+                          <Link href={`/companies/${event.companyId}`}>
+                            <Button variant="outline" size="sm">View</Button>
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant={event.completed ? 'outline' : 'default'}
-                          onClick={() => handleToggleComplete(event.id, event.completed)}
-                        >
-                          {event.completed ? '↩ Reopen' : '✓ Complete'}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+              {filteredEvents.length === 0 && (
+                <div className="text-center py-12 text-gray-500">
+                  {events.length === 0 ? (
+                    <>
+                      <p className="mb-4">No activities yet.</p>
+                      <Link href="/events/new">
+                        <Button>+ Log Your First Activity</Button>
+                      </Link>
+                    </>
+                  ) : (
+                    <p>No activities match your filters.</p>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              )}
+            </div>
+          </Card>
+        </>
       )}
     </div>
   );

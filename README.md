@@ -127,6 +127,9 @@ An intelligent CRM system with AI-powered lead discovery, pipeline management, a
    # Push schema to database (creates tables)
    npx prisma db push
 
+   # Seed the database with demo/sample data
+   npx prisma db seed
+
    # Optional: Open Prisma Studio to view data
    npx prisma studio
    ```
