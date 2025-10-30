@@ -2,35 +2,30 @@ import { NextResponse } from 'next/server';
 import { findLeads } from '@/lib/ai/lead-finder';
 import { prisma } from '@/lib/prisma';
 import { checkForDuplicate } from '@/lib/security/duplicate-detection';
-import { getAuthContext } from '@/lib/auth/context';
-import { requirePermission } from '@/lib/auth/permissions';
-import { rateLimit } from '@/lib/middleware/rate-limit';
-import { validateRequest, FindLeadsSchema } from '@/lib/validations/api';
 
 export async function POST(request: Request) {
   try {
-    // 1. Authentication
-    const authContext = await getAuthContext();
+    const body = await request.json();
+    const {
+      industry,
+      geography,
+      size,
+      additionalContext,
+      maxResults = 10,
+      autoCreate = true,
+    } = body;
 
-    // 2. Rate limiting (AI operations are expensive)
-    const rateLimitResponse = await rateLimit(authContext.userId, 'ai');
-    if (rateLimitResponse) return rateLimitResponse;
-
-    // 3. Authorization
-    requirePermission(authContext, 'USE_AI_LEAD_FINDER');
-
-    // 4. Validation
-    const data = await validateRequest(request, FindLeadsSchema);
+    if (!industry || !geography || !size) {
+      return NextResponse.json(
+        { error: 'Missing required fields: industry, geography, size' },
+        { status: 400 }
+      );
+    }
 
     console.log('🤖 Starting AI lead generation...');
     const leads = await findLeads(
-      {
-        industry: data.industry,
-        geography: data.geography,
-        size: data.size,
-        additionalContext: data.additionalContext,
-      },
-      data.maxResults
+      { industry, geography, size, additionalContext },
+      maxResults
     );
 
     if (leads.length === 0) {
@@ -45,18 +40,9 @@ export async function POST(request: Request) {
     let createdCompanies = [];
     let skippedDuplicates = 0;
 
-    if (data.autoCreate) {
+    if (autoCreate) {
       for (const lead of leads) {
-        // Check for duplicates within tenant
-        const duplicate = await prisma.company.findFirst({
-          where: {
-            tenantId: authContext.tenantId,
-            OR: [
-              { website: lead.website },
-              { name: lead.name },
-            ],
-          },
-        });
+        const duplicate = await checkForDuplicate(lead.website, lead.name);
 
         if (duplicate) {
           console.log(`⚠️ Skipping duplicate: ${lead.name}`);
@@ -64,10 +50,8 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // Create company with tenant isolation
         const company = await prisma.company.create({
           data: {
-            tenantId: authContext.tenantId,
             name: lead.name,
             website: lead.website,
             industry: lead.industry,
@@ -78,7 +62,7 @@ export async function POST(request: Request) {
             confidence: lead.confidence,
             status: 'Lead',
             sourceType: 'ai_agent',
-            sourceQuery: `${data.industry} in ${data.geography} with ${data.size}`,
+            sourceQuery: `${industry} in ${geography} with ${size}`,
           },
         });
 
@@ -92,8 +76,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      count: data.autoCreate ? createdCompanies.length : leads.length,
-      companies: data.autoCreate ? createdCompanies : leads,
+      count: autoCreate ? createdCompanies.length : leads.length,
+      companies: autoCreate ? createdCompanies : leads,
       skippedDuplicates: skippedDuplicates,
     });
   } catch (error) {
@@ -103,7 +87,7 @@ export async function POST(request: Request) {
         error: 'Failed to generate leads',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
+      { status: 500 }
     );
   }
 }

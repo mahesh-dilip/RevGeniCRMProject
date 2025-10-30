@@ -4,7 +4,6 @@ import './globals.css';
 import { Navigation } from '@/components/layout/Navigation';
 import { GlobalSearch } from '@/components/layout/GlobalSearch';
 import { Toaster } from 'sonner';
-import { ClerkProvider } from '@clerk/nextjs';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,17 +18,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className={inter.className}>
-          <Navigation />
-          <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-            {children}
-          </main>
-          <GlobalSearch />
-          <Toaster richColors position="top-right" />
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en">
+      <body className={inter.className}>
+        <Navigation />
+        <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          {children}
+        </main>
+        <GlobalSearch />
+        <Toaster richColors position="top-right" />
+      </body>
+    </html>
   );
 }

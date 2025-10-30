@@ -3,12 +3,11 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
     const company = await prisma.company.findUnique({
-      where: { id },
+      where: { id: params.id },
     });
 
     if (!company) {

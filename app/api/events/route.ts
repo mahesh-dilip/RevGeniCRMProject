@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { onEventCreated } from '@/lib/automations/triggers';
-import { createGetHandler, createPostHandler } from '@/lib/middleware/api-wrapper';
-import { CreateEventSchema } from '@/lib/validations/api';
 
-export const GET = createGetHandler({
-  permission: 'VIEW_ALL_DATA',
-  handler: async ({ auth, request }) => {
+export async function GET(request: Request) {
+  try {
     const { searchParams } = new URL(request.url);
     const companyId = searchParams.get('companyId');
     const personId = searchParams.get('personId');
@@ -14,7 +11,7 @@ export const GET = createGetHandler({
     const type = searchParams.get('type');
     const completed = searchParams.get('completed');
 
-    const where: any = { tenantId: auth.tenantId };
+    const where: any = {};
     if (companyId) where.companyId = companyId;
     if (personId) where.personId = personId;
     if (dealId) where.dealId = dealId;
@@ -53,27 +50,32 @@ export const GET = createGetHandler({
     });
 
     return NextResponse.json(events);
-  },
-});
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch events' },
+      { status: 500 }
+    );
+  }
+}
 
-export const POST = createPostHandler({
-  schema: CreateEventSchema,
-  permission: 'CREATE_EVENT',
-  handler: async (data, { auth }) => {
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
     const event = await prisma.event.create({
       data: {
-        tenantId: auth.tenantId,
-        type: data.type,
-        title: data.title,
-        description: data.description,
-        dueDate: data.dueDate ? new Date(data.dueDate) : null,
-        completed: data.completed || false,
-        source: data.source || 'manual',
-        priority: data.priority,
-        outcome: data.outcome,
-        companyId: data.companyId,
-        personId: data.personId,
-        dealId: data.dealId,
+        type: body.type,
+        title: body.title,
+        description: body.description,
+        dueDate: body.dueDate ? new Date(body.dueDate) : null,
+        completed: body.completed || false,
+        source: body.source || 'manual',
+        priority: body.priority,
+        outcome: body.outcome,
+        companyId: body.companyId,
+        personId: body.personId,
+        dealId: body.dealId,
       },
       include: {
         company: true,
@@ -88,5 +90,11 @@ export const POST = createPostHandler({
     }
 
     return NextResponse.json(event);
-  },
-});
+  } catch (error) {
+    console.error('Error creating event:', error);
+    return NextResponse.json(
+      { error: 'Failed to create event' },
+      { status: 500 }
+    );
+  }
+}

@@ -1,17 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createGetHandler, createPostHandler } from '@/lib/middleware/api-wrapper';
-import { CreateCompanySchema } from '@/lib/validations/api';
 
-export const GET = createGetHandler({
-  permission: 'VIEW_ALL_DATA',
-  handler: async ({ auth, request }) => {
+export async function GET(request: Request) {
+  try {
     const { searchParams } = new URL(request.url);
     const includePeople = searchParams.get('includePeople') === 'true';
 
-    // Tenant isolation: only fetch companies for user's tenant
     const companies = await prisma.company.findMany({
-      where: { tenantId: auth.tenantId },
       orderBy: { createdAt: 'desc' },
       include: {
         ...(includePeople && { people: true }),
@@ -25,30 +20,41 @@ export const GET = createGetHandler({
     });
 
     return NextResponse.json(companies);
-  },
-});
+  } catch (error) {
+    console.error('Error fetching companies:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch companies' },
+      { status: 500 }
+    );
+  }
+}
 
-export const POST = createPostHandler({
-  schema: CreateCompanySchema,
-  permission: 'CREATE_COMPANY',
-  handler: async (data, { auth }) => {
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
     const company = await prisma.company.create({
       data: {
-        tenantId: auth.tenantId,
-        name: data.name,
-        website: data.website,
-        industry: data.industry,
-        size: data.size,
-        geography: data.geography,
-        status: data.status || 'Lead',
-        description: data.description,
-        foundedYear: data.foundedYear,
-        sourceType: data.sourceType || 'manual',
-        sourceQuery: data.sourceQuery,
-        confidence: data.confidence,
+        name: body.name,
+        website: body.website,
+        industry: body.industry,
+        size: body.size,
+        geography: body.geography,
+        status: body.status || 'Lead',
+        description: body.description,
+        foundedYear: body.foundedYear,
+        sourceType: body.sourceType || 'manual',
+        sourceQuery: body.sourceQuery,
+        confidence: body.confidence,
       },
     });
 
     return NextResponse.json(company);
-  },
-});
+  } catch (error) {
+    console.error('Error creating company:', error);
+    return NextResponse.json(
+      { error: 'Failed to create company' },
+      { status: 500 }
+    );
+  }
+}
