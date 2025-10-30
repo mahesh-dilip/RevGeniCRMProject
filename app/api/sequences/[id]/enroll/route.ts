@@ -1,24 +1,24 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { addDays } from 'date-fns';
+import { validateRequest } from '@/lib/middleware/validate';
+import { EnrollSequenceSchema } from '@/lib/validations/sequences';
 
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
-    const { companyId, contactId, enrollments } = body;
+    // Validate request body
+    const validation = await validateRequest(request, EnrollSequenceSchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+
+    const { companyId, contactId, enrollments } = validation.data;
 
     // Support both single and bulk enrollment
     const enrollmentList = enrollments || (companyId ? [{ companyId, contactId: contactId || null }] : []);
-
-    if (enrollmentList.length === 0) {
-      return NextResponse.json(
-        { error: 'At least one company is required' },
-        { status: 400 }
-      );
-    }
 
     // Check if sequence exists and is active
     const sequence = await prisma.emailSequence.findUnique({

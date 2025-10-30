@@ -2,25 +2,25 @@ import { NextResponse } from 'next/server';
 import { findLeads } from '@/lib/ai/lead-finder';
 import { prisma } from '@/lib/prisma';
 import { checkForDuplicate } from '@/lib/security/duplicate-detection';
+import { validateRequest } from '@/lib/middleware/validate';
+import { FindLeadsSchema } from '@/lib/validations/ai';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    // Validate request body
+    const validation = await validateRequest(request, FindLeadsSchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+
     const {
       industry,
       geography,
       size,
       additionalContext,
-      maxResults = 10,
-      autoCreate = true,
-    } = body;
-
-    if (!industry || !geography || !size) {
-      return NextResponse.json(
-        { error: 'Missing required fields: industry, geography, size' },
-        { status: 400 }
-      );
-    }
+      maxResults,
+      autoCreate,
+    } = validation.data;
 
     console.log('🤖 Starting AI lead generation...');
     const leads = await findLeads(

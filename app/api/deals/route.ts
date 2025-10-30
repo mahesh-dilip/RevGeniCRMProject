@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { onDealCreated } from '@/lib/automations/triggers';
+import { validateRequest } from '@/lib/middleware/validate';
+import { CreateDealSchema } from '@/lib/validations/deals';
 
 export async function GET(request: Request) {
   try {
@@ -33,19 +35,25 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    // Validate request body
+    const validation = await validateRequest(request, CreateDealSchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+
+    const data = validation.data;
 
     const deal = await prisma.deal.create({
       data: {
-        title: body.title,
-        value: body.value,
-        stage: body.stage || 'Prospecting',
-        probability: body.probability,
-        closeDate: body.closeDate ? new Date(body.closeDate) : null,
-        description: body.description,
-        nextAction: body.nextAction,
-        companyId: body.companyId,
-        primaryContactId: body.primaryContactId,
+        title: data.title,
+        value: data.value,
+        stage: data.stage || 'Prospecting',
+        probability: data.probability,
+        closeDate: data.closeDate ? new Date(data.closeDate) : null,
+        description: data.description,
+        nextAction: data.nextAction,
+        companyId: data.companyId,
+        primaryContactId: data.primaryContactId,
         stageChangedAt: new Date()
       },
       include: {

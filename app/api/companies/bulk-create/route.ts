@@ -1,17 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkForDuplicate } from '@/lib/security/duplicate-detection';
+import { validateRequest } from '@/lib/middleware/validate';
+import { BulkCreateCompaniesSchema } from '@/lib/validations/companies';
 
 export async function POST(request: Request) {
   try {
-    const { companies } = await request.json();
-
-    if (!Array.isArray(companies) || companies.length === 0) {
-      return NextResponse.json(
-        { error: 'No companies provided' },
-        { status: 400 }
-      );
+    // Validate request body
+    const validation = await validateRequest(request, BulkCreateCompaniesSchema);
+    if ('error' in validation) {
+      return validation.error;
     }
+
+    const { companies } = validation.data;
 
     let created = 0;
     let skipped = 0;
@@ -19,7 +20,10 @@ export async function POST(request: Request) {
 
     for (const company of companies) {
       // Check for duplicates
-      const isDuplicate = await checkForDuplicate(company.website, company.name);
+      const isDuplicate = await checkForDuplicate(
+        company.website || undefined,
+        company.name
+      );
 
       if (isDuplicate) {
         console.log(`⚠️ Skipping duplicate: ${company.name}`);

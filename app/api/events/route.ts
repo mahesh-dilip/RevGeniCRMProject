@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { onEventCreated } from '@/lib/automations/triggers';
+import { validateRequest } from '@/lib/middleware/validate';
+import { CreateEventSchema } from '@/lib/validations/events';
 
 export async function GET(request: Request) {
   try {
@@ -61,21 +63,27 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    // Validate request body
+    const validation = await validateRequest(request, CreateEventSchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+
+    const data = validation.data;
 
     const event = await prisma.event.create({
       data: {
-        type: body.type,
-        title: body.title,
-        description: body.description,
-        dueDate: body.dueDate ? new Date(body.dueDate) : null,
-        completed: body.completed || false,
-        source: body.source || 'manual',
-        priority: body.priority,
-        outcome: body.outcome,
-        companyId: body.companyId,
-        personId: body.personId,
-        dealId: body.dealId,
+        type: data.type,
+        title: data.title,
+        description: data.description,
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        completed: data.completed || false,
+        source: data.source || 'manual',
+        priority: data.priority,
+        outcome: data.outcome,
+        companyId: data.companyId,
+        personId: data.personId,
+        dealId: data.dealId,
       },
       include: {
         company: true,

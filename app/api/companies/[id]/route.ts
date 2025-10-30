@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateRequest } from '@/lib/middleware/validate';
+import { UpdateCompanySchema } from '@/lib/validations/companies';
 
 export async function GET(
   request: Request,
@@ -55,19 +57,25 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
+    // Validate request body
+    const validation = await validateRequest(request, UpdateCompanySchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+
+    const data = validation.data;
 
     const company = await prisma.company.update({
       where: { id: params.id },
       data: {
-        name: body.name,
-        website: body.website,
-        industry: body.industry,
-        size: body.size,
-        geography: body.geography,
-        status: body.status,
-        description: body.description,
-        foundedYear: body.foundedYear,
+        name: data.name,
+        website: data.website,
+        industry: data.industry,
+        size: data.size,
+        geography: data.geography,
+        status: data.status,
+        description: data.description,
+        foundedYear: data.foundedYear,
       },
     });
 

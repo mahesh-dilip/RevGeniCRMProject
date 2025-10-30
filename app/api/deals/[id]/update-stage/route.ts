@@ -1,13 +1,21 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { onDealStageChange } from '@/lib/automations/deal-stage-triggers';
+import { validateRequest } from '@/lib/middleware/validate';
+import { UpdateDealStageSchema } from '@/lib/validations/deals';
 
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { stage, nextAction, lostReason } = await request.json();
+    // Validate request body
+    const validation = await validateRequest(request, UpdateDealStageSchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+
+    const { stage, nextAction, lostReason } = validation.data;
 
     const currentDeal = await prisma.deal.findUnique({
       where: { id: params.id },

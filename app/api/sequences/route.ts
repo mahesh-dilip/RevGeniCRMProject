@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateRequest } from '@/lib/middleware/validate';
+import { CreateSequenceSchema } from '@/lib/validations/sequences';
 
 export async function GET() {
   try {
@@ -29,17 +31,23 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    // Validate request body
+    const validation = await validateRequest(request, CreateSequenceSchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+
+    const data = validation.data;
 
     const sequence = await prisma.emailSequence.create({
       data: {
-        name: body.name,
-        description: body.description,
-        active: body.active !== false,
-        pauseOnDealCreation: body.pauseOnDealCreation !== false,
-        pauseOnDealStages: body.pauseOnDealStages || ['Demo', 'Proposal'],
+        name: data.name,
+        description: data.description,
+        active: data.active !== false,
+        pauseOnDealCreation: data.pauseOnDealCreation !== false,
+        pauseOnDealStages: data.pauseOnDealStages || ['Demo', 'Proposal'],
         steps: {
-          create: body.steps?.map((step: any, index: number) => ({
+          create: data.steps?.map((step, index: number) => ({
             stepOrder: index + 1,
             delayDays: step.delayDays,
             subject: step.subject,

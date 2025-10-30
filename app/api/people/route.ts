@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateRequest } from '@/lib/middleware/validate';
+import { CreatePersonSchema } from '@/lib/validations/people';
 
 export async function GET(request: Request) {
   try {
@@ -39,24 +41,23 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-
-    if (!body.firstName || !body.lastName || !body.companyId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+    // Validate request body
+    const validation = await validateRequest(request, CreatePersonSchema);
+    if ('error' in validation) {
+      return validation.error;
     }
+
+    const data = validation.data;
 
     const person = await prisma.person.create({
       data: {
-        firstName: body.firstName,
-        lastName: body.lastName,
-        email: body.email,
-        phone: body.phone,
-        title: body.title,
-        linkedin: body.linkedin,
-        companyId: body.companyId,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        title: data.title,
+        linkedin: data.linkedin,
+        companyId: data.companyId,
       },
       include: {
         company: {

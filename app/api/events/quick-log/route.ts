@@ -1,18 +1,26 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateRequest } from '@/lib/middleware/validate';
+import { QuickLogEventSchema } from '@/lib/validations/events';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    // Validate request body
+    const validation = await validateRequest(request, QuickLogEventSchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+
+    const data = validation.data;
 
     const event = await prisma.event.create({
       data: {
-        type: body.type,
-        title: body.title,
-        description: body.description,
-        outcome: body.outcome,
+        type: data.type,
+        title: data.title,
+        description: data.description,
+        outcome: data.outcome,
         source: 'manual',
-        companyId: body.companyId,
+        companyId: data.companyId,
       },
     });
 

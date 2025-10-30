@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateRequest } from '@/lib/middleware/validate';
+import { CreateCompanySchema } from '@/lib/validations/companies';
 
 export async function GET(request: Request) {
   try {
@@ -31,21 +33,27 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    // Validate request body
+    const validation = await validateRequest(request, CreateCompanySchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+
+    const data = validation.data;
 
     const company = await prisma.company.create({
       data: {
-        name: body.name,
-        website: body.website,
-        industry: body.industry,
-        size: body.size,
-        geography: body.geography,
-        status: body.status || 'Lead',
-        description: body.description,
-        foundedYear: body.foundedYear,
-        sourceType: body.sourceType || 'manual',
-        sourceQuery: body.sourceQuery,
-        confidence: body.confidence,
+        name: data.name,
+        website: data.website,
+        industry: data.industry,
+        size: data.size,
+        geography: data.geography,
+        status: data.status || 'Lead',
+        description: data.description,
+        foundedYear: data.foundedYear,
+        sourceType: data.sourceType || 'manual',
+        sourceQuery: data.sourceQuery,
+        confidence: data.confidence,
       },
     });
 

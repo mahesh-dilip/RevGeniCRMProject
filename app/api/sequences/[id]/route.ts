@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateRequest } from '@/lib/middleware/validate';
+import { UpdateSequenceSchema } from '@/lib/validations/sequences';
 
 export async function GET(
   request: Request,
@@ -37,7 +39,13 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
+    // Validate request body
+    const validation = await validateRequest(request, UpdateSequenceSchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+
+    const data = validation.data;
 
     // Delete existing steps
     await prisma.emailSequenceStep.deleteMany({
@@ -48,13 +56,13 @@ export async function PATCH(
     const sequence = await prisma.emailSequence.update({
       where: { id: params.id },
       data: {
-        name: body.name,
-        description: body.description,
-        active: body.active,
-        pauseOnDealCreation: body.pauseOnDealCreation,
-        pauseOnDealStages: body.pauseOnDealStages || [],
+        name: data.name,
+        description: data.description,
+        active: data.active,
+        pauseOnDealCreation: data.pauseOnDealCreation,
+        pauseOnDealStages: data.pauseOnDealStages || [],
         steps: {
-          create: body.steps?.map((step: any, index: number) => ({
+          create: data.steps?.map((step, index: number) => ({
             stepOrder: index + 1,
             delayDays: step.delayDays,
             subject: step.subject,

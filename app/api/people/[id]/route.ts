@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateRequest } from '@/lib/middleware/validate';
+import { UpdatePersonSchema } from '@/lib/validations/people';
 
 export async function GET(
   request: Request,
@@ -42,17 +44,23 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
+    // Validate request body
+    const validation = await validateRequest(request, UpdatePersonSchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+
+    const data = validation.data;
 
     const person = await prisma.person.update({
       where: { id: params.id },
       data: {
-        firstName: body.firstName,
-        lastName: body.lastName,
-        email: body.email,
-        phone: body.phone,
-        title: body.title,
-        linkedin: body.linkedin,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        title: data.title,
+        linkedin: data.linkedin,
       },
     });
 

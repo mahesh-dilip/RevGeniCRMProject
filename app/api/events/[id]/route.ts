@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateRequest } from '@/lib/middleware/validate';
+import { UpdateEventSchema } from '@/lib/validations/events';
 
 export async function GET(
   request: Request,
@@ -37,18 +39,24 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
+    // Validate request body
+    const validation = await validateRequest(request, UpdateEventSchema);
+    if ('error' in validation) {
+      return validation.error;
+    }
+
+    const data = validation.data;
 
     const event = await prisma.event.update({
       where: { id: params.id },
       data: {
-        type: body.type,
-        title: body.title,
-        description: body.description,
-        dueDate: body.dueDate ? new Date(body.dueDate) : null,
-        completed: body.completed,
-        priority: body.priority,
-        outcome: body.outcome,
+        type: data.type,
+        title: data.title,
+        description: data.description,
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        completed: data.completed,
+        priority: data.priority,
+        outcome: data.outcome,
       },
     });
 
