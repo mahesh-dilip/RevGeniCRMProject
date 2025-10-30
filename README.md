@@ -1,6 +1,26 @@
 # RevGeni.ai CRM with AI Lead Generation
 
-An intelligent CRM system with AI-powered lead discovery, pipeline management, and automated email sequences built for the RevGeni.ai technical assessment.
+An intelligent CRM system with AI-powered lead discovery, HubSpot-inspired features, pipeline management, and automated email sequences built for the RevGeni.ai technical assessment.
+
+**Latest Update**: Enhanced UI with professional table views, detail pages for all entities, improved deal management, and comprehensive seed data.
+
+## 🆕 Recent Enhancements (October 2024)
+
+### UI/UX Improvements
+- ✅ **Professional Table Views** - All list pages (Companies, People, Events, Sequences) now use HubSpot-style tables
+- ✅ **Complete Detail Pages** - Added detail pages for Deals, People, and Email Sequences
+- ✅ **Enhanced Pipeline Board** - Improved Kanban design with color-coded stages and better visual hierarchy
+- ✅ **Horizontal Deal Progress** - Stage progress now displays horizontally with connecting lines
+- ✅ **Stats Dashboards** - Key metrics displayed at the top of each list page
+- ✅ **Lead Score Visualization** - Progress bars showing lead scores on Companies page
+- ✅ **Quick Actions** - Consistent action buttons throughout the application
+- ✅ **Improved Navigation** - All entity links now work correctly across the app
+
+### Data & Functionality
+- ✅ **Comprehensive Seed Data** - 8 companies, 9 people, 7 deals, 16 events, 3 sequences with realistic demo data
+- ✅ **Fixed Schema Issues** - Corrected SequenceEnrollment and ScheduledEmail relationships
+- ✅ **Activity Timelines** - Full event history on Company, Deal, and People detail pages
+- ✅ **Automation Triggers** - Lead scoring and lifecycle progression on deal/event creation
 
 ## 🎯 Features
 
@@ -280,18 +300,22 @@ An intelligent CRM system with AI-powered lead discovery, pipeline management, a
 │   │   └── ai/find-leads/            # AI lead generation
 │   ├── ai-lead-finder/               # AI search interface with selection
 │   ├── companies/                    # Company management
-│   │   ├── page.tsx                  # Company list
+│   │   ├── page.tsx                  # Company list (TABLE VIEW with stats)
 │   │   └── [id]/page.tsx             # Company detail (tabs: overview, people, deals, activity)
 │   ├── people/                       # People management
-│   │   ├── page.tsx                  # People list with search
+│   │   ├── page.tsx                  # People list (TABLE VIEW with search)
+│   │   ├── [id]/page.tsx             # People detail (NEW - contact info, deals, timeline)
 │   │   └── new/page.tsx              # Add new person
 │   ├── deals/                        # Pipeline board
-│   │   └── page.tsx                  # Kanban view
+│   │   ├── page.tsx                  # Kanban view (ENHANCED with colors)
+│   │   ├── [id]/page.tsx             # Deal detail (NEW - horizontal layout)
+│   │   └── new/page.tsx              # Create new deal
 │   ├── events/                       # Events & activities
-│   │   ├── page.tsx                  # Event list with filters
+│   │   ├── page.tsx                  # Event list (TABLE VIEW with filters)
 │   │   └── new/page.tsx              # Create new event
 │   ├── sequences/                    # Email sequences
-│   │   ├── page.tsx                  # Sequence list
+│   │   ├── page.tsx                  # Sequence list (TABLE VIEW with stats)
+│   │   ├── [id]/page.tsx             # Sequence detail (NEW - steps, enrollments)
 │   │   └── new/page.tsx              # Sequence builder
 │   ├── page.tsx                      # Dashboard with metrics
 │   └── layout.tsx                    # Root layout with navigation
