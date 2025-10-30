@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { RecentlyViewed } from './RecentlyViewed';
 
 const navItems = [
   { name: 'Dashboard', href: '/' },
@@ -44,6 +45,10 @@ export function Navigation() {
                 );
               })}
             </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <RecentlyViewed />
+            <div className="text-sm text-gray-500">Press ⌘K to search</div>
           </div>
         </div>
       </div>

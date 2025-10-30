@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { DEAL_STAGES } from '@/lib/utils/constants';
+import { InlinePersonForm } from '@/components/people/InlinePersonForm';
 
 function NewDealForm() {
   const router = useRouter();
@@ -17,6 +18,7 @@ function NewDealForm() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [people, setPeople] = useState<any[]>([]);
   const [selectedCompanyPeople, setSelectedCompanyPeople] = useState<any[]>([]);
+  const [showInlinePersonForm, setShowInlinePersonForm] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -123,22 +125,31 @@ function NewDealForm() {
               </p>
             </div>
 
-            {selectedCompanyPeople.length > 0 && (
+            {formData.companyId && (
               <div>
                 <Label htmlFor="primaryContactId">Primary Contact</Label>
-                <select
-                  id="primaryContactId"
-                  value={formData.primaryContactId}
-                  onChange={(e) => setFormData({ ...formData, primaryContactId: e.target.value })}
-                  className="w-full border rounded p-2"
-                >
-                  <option value="">Select primary contact...</option>
-                  {selectedCompanyPeople.map((person) => (
-                    <option key={person.id} value={person.id}>
-                      {person.firstName} {person.lastName} {person.title ? `- ${person.title}` : ''}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex gap-2">
+                  <select
+                    id="primaryContactId"
+                    value={formData.primaryContactId}
+                    onChange={(e) => setFormData({ ...formData, primaryContactId: e.target.value })}
+                    className="flex-1 border rounded p-2"
+                  >
+                    <option value="">Select primary contact...</option>
+                    {selectedCompanyPeople.map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.firstName} {person.lastName} {person.title ? `- ${person.title}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowInlinePersonForm(true)}
+                  >
+                    + New Contact
+                  </Button>
+                </div>
                 <p className="text-xs text-gray-500 mt-1">
                   Who is the main decision maker or point of contact?
                 </p>
@@ -255,6 +266,19 @@ function NewDealForm() {
           </Button>
         </div>
       </form>
+
+      {showInlinePersonForm && formData.companyId && (
+        <InlinePersonForm
+          companyId={formData.companyId}
+          onPersonCreated={(newPerson) => {
+            setPeople([...people, newPerson]);
+            setSelectedCompanyPeople([...selectedCompanyPeople, newPerson]);
+            setFormData({ ...formData, primaryContactId: newPerson.id });
+            setShowInlinePersonForm(false);
+          }}
+          onCancel={() => setShowInlinePersonForm(false)}
+        />
+      )}
     </div>
   );
 }

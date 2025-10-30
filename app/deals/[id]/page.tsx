@@ -8,6 +8,8 @@ import { ActivityTimeline } from '@/components/events/ActivityTimeline';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { format } from 'date-fns';
 import { DEAL_STAGES } from '@/lib/utils/constants';
+import { StageUpdater } from './components/StageUpdater';
+import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 
 export default async function DealDetailPage({
   params
@@ -38,6 +40,13 @@ export default async function DealDetailPage({
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[
+        { label: 'Deals', href: '/deals' },
+        { label: 'Companies', href: '/companies' },
+        { label: deal.company.name, href: `/companies/${deal.company.id}` },
+        { label: deal.title }
+      ]} />
+
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
@@ -144,6 +153,9 @@ export default async function DealDetailPage({
           </div>
         </Card>
       )}
+
+      {/* Stage Updater */}
+      <StageUpdater dealId={deal.id} currentStage={deal.stage} />
 
       {/* Stage Progress - Horizontal */}
       {deal.stage !== 'Won' && deal.stage !== 'Lost' && (

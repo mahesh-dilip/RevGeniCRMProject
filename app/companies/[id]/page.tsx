@@ -7,6 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { QualifyLeadButton } from './components/QualifyLeadButton';
+import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
+import { addRecentlyViewed } from '@/lib/utils/recently-viewed';
 
 type TabType = 'overview' | 'people' | 'deals' | 'activity';
 
@@ -30,6 +33,13 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
 
       const data = await response.json();
       setCompany(data);
+      
+      // Track recently viewed
+      addRecentlyViewed({
+        id: data.id,
+        name: data.name,
+        type: 'company'
+      });
     } catch (error) {
       console.error('Error fetching company:', error);
       toast.error('Failed to load company');
@@ -85,6 +95,11 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[
+        { label: 'Companies', href: '/companies' },
+        { label: company.name }
+      ]} />
+
       {/* Header */}
       <div className="flex justify-between items-start">
         <div className="space-y-2">
@@ -113,6 +128,11 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
         </div>
 
         <div className="flex gap-2">
+          <QualifyLeadButton 
+            companyId={params.id} 
+            companyName={company.name}
+            status={company.status}
+          />
           <Link href={`/companies/${params.id}/edit`}>
             <Button variant="outline">Edit Company</Button>
           </Link>
@@ -243,6 +263,11 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
                   <Link href={`/deals/new?companyId=${company.id}`}>
                     <Button variant="outline" size="sm" className="w-full">
                       💼 Create Deal
+                    </Button>
+                  </Link>
+                  <Link href={`/sequences/enroll?companyId=${company.id}`}>
+                    <Button variant="outline" size="sm" className="w-full">
+                      📧 Enroll in Sequence
                     </Button>
                   </Link>
                   <Link href={`/events/new?companyId=${company.id}`}>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
+import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 
 export default async function SequenceDetailPage({
   params
@@ -37,6 +38,11 @@ export default async function SequenceDetailPage({
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[
+        { label: 'Sequences', href: '/sequences' },
+        { label: sequence.name }
+      ]} />
+
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>

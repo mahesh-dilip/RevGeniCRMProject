@@ -2,14 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
 
 export default function CompaniesPage() {
+  const router = useRouter();
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<string>('');
 
   useEffect(() => {
     fetchCompanies();
@@ -30,6 +36,57 @@ export default function CompaniesPage() {
   const filteredCompanies = statusFilter
     ? companies.filter(c => c.status === statusFilter)
     : companies;
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredCompanies.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredCompanies.map(c => c.id)));
+    }
+  };
+
+  const handleBulkAction = async () => {
+    if (selectedIds.size === 0) {
+      toast.error('No companies selected');
+      return;
+    }
+
+    if (bulkAction === 'enroll-sequence') {
+      // Navigate to enrollment with multiple companies
+      const ids = Array.from(selectedIds).join(',');
+      router.push(`/sequences/enroll?companyIds=${ids}`);
+    } else if (bulkAction === 'change-status') {
+      const newStatus = prompt('Enter new status (Lead, Qualified, Customer, Lost):');
+      if (!newStatus) return;
+
+      try {
+        const promises = Array.from(selectedIds).map(id =>
+          fetch(`/api/companies/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+          })
+        );
+        
+        await Promise.all(promises);
+        toast.success(`Updated ${selectedIds.size} companies to ${newStatus}`);
+        setSelectedIds(new Set());
+        fetchCompanies();
+      } catch (error) {
+        toast.error('Failed to update companies');
+      }
+    }
+  };
 
   const stats = {
     total: companies.length,
@@ -119,12 +176,46 @@ export default function CompaniesPage() {
             </Button>
           </div>
 
+          {/* Bulk Action Bar */}
+          {selectedIds.size > 0 && (
+            <Card className="p-4 bg-blue-50 border-blue-200">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">
+                  {selectedIds.size} {selectedIds.size === 1 ? 'company' : 'companies'} selected
+                </span>
+                <div className="flex gap-2">
+                  <select
+                    value={bulkAction}
+                    onChange={(e) => setBulkAction(e.target.value)}
+                    className="border rounded px-3 py-1"
+                  >
+                    <option value="">Select action...</option>
+                    <option value="enroll-sequence">Enroll in Sequence</option>
+                    <option value="change-status">Change Status</option>
+                  </select>
+                  <Button onClick={handleBulkAction} disabled={!bulkAction}>
+                    Apply
+                  </Button>
+                  <Button variant="outline" onClick={() => setSelectedIds(new Set())}>
+                    Clear Selection
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Table */}
           <Card>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600 w-12">
+                      <Checkbox
+                        checked={selectedIds.size === filteredCompanies.length && filteredCompanies.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </th>
                     <th className="text-left p-4 font-semibold text-sm">Company</th>
                     <th className="text-left p-4 font-semibold text-sm">Status</th>
                     <th className="text-left p-4 font-semibold text-sm">Industry</th>
@@ -138,6 +229,12 @@ export default function CompaniesPage() {
                 <tbody>
                   {filteredCompanies.map((company) => (
                     <tr key={company.id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4">
+                        <Checkbox
+                          checked={selectedIds.has(company.id)}
+                          onCheckedChange={() => toggleSelect(company.id)}
+                        />
+                      </td>
                       <td className="p-4">
                         <div>
                           <Link

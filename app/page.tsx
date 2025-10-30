@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { TaskCard } from '@/components/dashboard/TaskCard';
+import { SmartSuggestions } from '@/components/dashboard/SmartSuggestions';
+import { DealCharts } from '@/components/dashboard/DealCharts';
 
 async function DashboardMetrics() {
   try {
@@ -81,31 +84,17 @@ async function DashboardMetrics() {
           </Card>
         </div>
 
+        <Suspense fallback={<div className="h-32 bg-gray-100 animate-pulse rounded" />}>
+          <SmartSuggestions />
+        </Suspense>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <div>
             <h2 className="text-xl font-semibold mb-4">📋 Upcoming Tasks</h2>
             {tasksData.length > 0 ? (
               <div className="space-y-2">
                 {tasksData.map((task) => (
-                  <Card key={task.id} className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-sm">{task.title}</h3>
-                        {task.company && (
-                          <p className="text-xs text-gray-600">{task.company.name}</p>
-                        )}
-                      </div>
-                      {task.priority && (
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          task.priority === 'high' ? 'bg-red-100 text-red-700' :
-                          task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {task.priority}
-                        </span>
-                      )}
-                    </div>
-                  </Card>
+                  <TaskCard key={task.id} task={task} />
                 ))}
               </div>
             ) : (
@@ -145,6 +134,10 @@ async function DashboardMetrics() {
             </div>
           </div>
         </div>
+
+        <Suspense fallback={<div className="h-64 bg-gray-100 animate-pulse rounded mt-6" />}>
+          <DealCharts />
+        </Suspense>
       </>
     );
   } catch (error) {
