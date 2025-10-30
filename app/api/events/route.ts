@@ -5,21 +5,46 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const companyId = searchParams.get('companyId');
+    const personId = searchParams.get('personId');
     const dealId = searchParams.get('dealId');
     const type = searchParams.get('type');
+    const completed = searchParams.get('completed');
 
     const where: any = {};
     if (companyId) where.companyId = companyId;
+    if (personId) where.personId = personId;
     if (dealId) where.dealId = dealId;
     if (type) where.type = type;
+    if (completed !== null && completed !== undefined) {
+      where.completed = completed === 'true';
+    }
 
     const events = await prisma.event.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { dueDate: 'asc' },
+        { createdAt: 'desc' }
+      ],
       include: {
-        company: true,
-        person: true,
-        deal: true,
+        company: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        person: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        deal: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
       },
     });
 

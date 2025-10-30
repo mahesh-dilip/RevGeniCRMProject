@@ -5,29 +5,65 @@ An intelligent CRM system with AI-powered lead discovery, pipeline management, a
 ## 🎯 Features
 
 ### 1. AI Lead Generation 🤖
+- **Two-step review process**: Search → Review → Confirm workflow
 - **Neural search** using Exa API to find companies matching criteria
 - **AI extraction** with Claude Sonnet 4 to structure company data
+- **Manual selection**: Choose which leads to add with checkboxes
 - **Duplicate detection** to prevent redundant entries
 - **Confidence scoring** to indicate match quality
-- Auto-creates companies in CRM with source tracking
+- **Bulk import**: Add multiple selected companies at once
+- Source tracking for all AI-generated leads
 
-### 2. Visual Pipeline Management 📊
+### 2. Company Management 🏢
+- **Complete company profiles** with detailed information
+- **Tabbed interface**: Overview, People, Deals, Activity
+- **Quick stats** showing related records at a glance
+- **Activity timeline** displaying all interactions
+- **Quick actions** for adding people, deals, and events
+- **AI-sourced metadata** with confidence scores
+- **Edit and delete** capabilities
+
+### 3. People Management 👥
+- **Contact database** with full profile information
+- **Company associations** linking contacts to organizations
+- **Advanced search** by name, email, or company
+- **Contact details**: Email, phone, LinkedIn, job title
+- **Activity tracking** showing events per contact
+- **Deal associations** showing primary contacts
+- **Quick add** from company detail pages
+
+### 4. Visual Pipeline Management 📊
 - **Kanban board** with 7 deal stages (Prospecting → Won/Lost)
 - **Automated workflows** when deals change stages
 - **Metrics dashboard** showing deal count and value per stage
 - **Smart integrations** with email sequences
+- **Primary contact** assignment per deal
+- **Deal value** and probability tracking
 
-### 3. Email Sequences 📧
+### 5. Events & Activities 📅
+- **Multi-type events**: Calls, Emails, Meetings, Tasks, Notes
+- **Smart filtering**: By status (pending/completed) and type
+- **Entity linking**: Associate with companies, people, and deals
+- **Due dates** with overdue indicators
+- **Priority levels**: High, Medium, Low
+- **Quick complete**: Toggle completion status
+- **Timeline view** showing full activity history
+
+### 6. Email Sequences 📧
 - **Multi-step sequences** with customizable delays
-- **Template variables** support ({{company.name}}, etc.)
-- **Automatic pausing** when deals move to active stages
+- **Visual sequence builder** for creating campaigns
+- **Template variables** support ({{firstName}}, {{company}}, etc.)
+- **Automation settings**: Pause on deal creation or specific stages
+- **Step management**: Add, remove, reorder email steps
+- **Activation control**: Enable/disable sequences
 - **Enrollment tracking** per company
 
-### 4. CRM Data Management 🏢
-- **Companies** with AI-sourced metadata and confidence scores
-- **Deals** with stage progression and automation
-- **Events** activity timeline for all interactions
-- **Comprehensive search** and filtering
+### 7. Dashboard 📊
+- **Real-time metrics**: Companies, deals, pipeline value
+- **Upcoming tasks** with priority indicators
+- **Quick actions** for common workflows
+- **Activity overview** at a glance
+- **Performance indicators**: Won deals, active pipeline
 
 ## 🏗️ Tech Stack
 
@@ -113,9 +149,13 @@ An intelligent CRM system with AI-powered lead discovery, pipeline management, a
    - **Geography**: e.g., "London, UK", "San Francisco, CA"
    - **Company Size**: e.g., "50-200 employees"
    - **Additional Context**: Any extra search criteria
-3. Click **Find Leads**
-4. Results will be automatically created as companies in your CRM
-5. Each company shows a confidence score indicating match quality
+3. Click **Find Leads with AI**
+4. **Review the results** - AI will find matching companies
+5. **Select companies** to add using checkboxes
+   - Use "Select All" / "Deselect All" for quick selection
+   - Each company shows a confidence score
+6. Click **Add to CRM** to import selected companies
+7. Duplicates are automatically detected and skipped
 
 ### Managing Companies
 
@@ -125,6 +165,37 @@ An intelligent CRM system with AI-powered lead discovery, pipeline management, a
    - Status: Lead, Qualified, Customer, Lost
    - Confidence score for AI-sourced leads
 3. Click **View Details** to see full company information
+4. **Company Detail Page** has four tabs:
+   - **Overview**: All company info, metadata, quick stats
+   - **People**: View and add contacts for this company
+   - **Deals**: All associated deals
+   - **Activity**: Full timeline of interactions
+5. Use **Quick Actions** to add people, deals, or events
+
+### Managing People
+
+1. Navigate to **People** to see all contacts
+2. Use the **search bar** to filter by name, email, or company
+3. Click **Add Person** to create new contacts
+4. Each person shows:
+   - Name, title, contact information
+   - Associated company (clickable link)
+   - Count of deals and events
+5. Quick add people from company detail pages
+
+### Tracking Events & Activities
+
+1. Go to **Events** to see all activities
+2. Filter by:
+   - **Status**: All, Pending, Completed
+   - **Type**: Calls, Emails, Meetings, Tasks, Notes
+3. Click **Add Event** to log new activities
+4. Choose event type and fill in details:
+   - Link to company, person, or deal
+   - Set due date and priority
+   - Add description
+5. Mark events as complete with a single click
+6. Overdue tasks are highlighted in red
 
 ### Pipeline Management
 
@@ -139,16 +210,26 @@ An intelligent CRM system with AI-powered lead discovery, pipeline management, a
    - **Won stage**: Marks company as Customer, completes sequences
    - **Lost stage**: Can resume nurture sequences
 
-### Email Sequences
+### Creating Email Sequences
 
 1. Go to **Sequences** to view email automation
-2. Create multi-step sequences with delays
-3. Use template variables:
-   - `{{company.name}}`
-   - `{{company.industry}}`
-   - `{{person.firstName}}`
-4. Enroll companies in sequences
-5. Sequences automatically pause when deals reach Demo/Proposal stages
+2. Click **Create Sequence** to start building
+3. Fill in sequence details:
+   - Name and description
+   - Active/inactive status
+   - Automation settings
+4. **Add email steps**:
+   - Click "+ Add Step" to add more emails
+   - Set delay days between steps (step 1 is immediate)
+   - Write subject and body for each email
+5. Use template variables:
+   - `{{firstName}}`, `{{lastName}}`
+   - `{{company}}`, `{{website}}`
+6. **Configure automation**:
+   - Pause on deal creation
+   - Pause on specific deal stages
+7. Enroll companies in sequences
+8. Sequences automatically pause based on your settings
 
 ## 🔑 Key Technical Features
 
@@ -175,30 +256,68 @@ An intelligent CRM system with AI-powered lead discovery, pipeline management, a
 ```
 /revgeieclaudecode
 ├── app/
-│   ├── api/                    # API routes
-│   │   ├── companies/          # Company CRUD
-│   │   ├── deals/              # Deal management
-│   │   ├── events/             # Activity tracking
-│   │   ├── sequences/          # Email sequences
-│   │   └── ai/find-leads/      # AI lead generation
-│   ├── ai-lead-finder/         # AI search interface
-│   ├── companies/              # Company management
-│   ├── deals/                  # Pipeline board
-│   ├── sequences/              # Email sequences
-│   └── layout.tsx              # Root layout
+│   ├── api/                          # API routes
+│   │   ├── companies/                # Company CRUD
+│   │   │   ├── route.ts              # List & create companies
+│   │   │   ├── [id]/route.ts         # Get, update, delete company
+│   │   │   ├── bulk-create/route.ts  # Bulk import with duplicate detection
+│   │   │   └── [id]/convert-to-deal/ # Convert company to deal
+│   │   ├── people/                   # People management
+│   │   │   ├── route.ts              # List & create people
+│   │   │   └── [id]/route.ts         # Get, update, delete person
+│   │   ├── deals/                    # Deal management
+│   │   │   ├── route.ts              # List & create deals
+│   │   │   └── [id]/update-stage/    # Update deal stage
+│   │   ├── events/                   # Activity tracking
+│   │   │   ├── route.ts              # List & create events
+│   │   │   ├── [id]/route.ts         # Get, update, delete event
+│   │   │   └── quick-log/            # Quick event logging
+│   │   ├── sequences/                # Email sequences
+│   │   │   └── route.ts              # List & create sequences
+│   │   └── ai/find-leads/            # AI lead generation
+│   ├── ai-lead-finder/               # AI search interface with selection
+│   ├── companies/                    # Company management
+│   │   ├── page.tsx                  # Company list
+│   │   └── [id]/page.tsx             # Company detail (tabs: overview, people, deals, activity)
+│   ├── people/                       # People management
+│   │   ├── page.tsx                  # People list with search
+│   │   └── new/page.tsx              # Add new person
+│   ├── deals/                        # Pipeline board
+│   │   └── page.tsx                  # Kanban view
+│   ├── events/                       # Events & activities
+│   │   ├── page.tsx                  # Event list with filters
+│   │   └── new/page.tsx              # Create new event
+│   ├── sequences/                    # Email sequences
+│   │   ├── page.tsx                  # Sequence list
+│   │   └── new/page.tsx              # Sequence builder
+│   ├── page.tsx                      # Dashboard with metrics
+│   └── layout.tsx                    # Root layout with navigation
 ├── components/
-│   ├── ui/                     # Base UI components
-│   └── layout/                 # Navigation, etc.
+│   ├── ui/                           # Base UI components
+│   │   ├── badge.tsx                 # Badge component
+│   │   ├── button.tsx                # Button component
+│   │   ├── card.tsx                  # Card component
+│   │   ├── checkbox.tsx              # Checkbox component
+│   │   ├── input.tsx                 # Input component
+│   │   ├── label.tsx                 # Label component
+│   │   └── textarea.tsx              # Textarea component
+│   └── layout/                       # Layout components
+│       └── Navigation.tsx            # Main navigation bar
 ├── lib/
-│   ├── ai/                     # AI lead finder logic
-│   ├── automations/            # Business automations
-│   ├── email/                  # Email templates
-│   ├── security/               # Duplicate detection
-│   ├── utils/                  # Utilities
-│   └── prisma.ts               # Database client
+│   ├── ai/                           # AI lead finder logic
+│   │   └── lead-finder.ts            # Exa + Claude integration
+│   ├── automations/                  # Business automations
+│   │   └── deal-stage-triggers.ts    # Deal stage automation
+│   ├── email/                        # Email templates
+│   ├── security/                     # Security utilities
+│   │   └── duplicate-detection.ts    # Duplicate checking
+│   ├── utils/                        # Utilities
+│   │   ├── cn.ts                     # Class name utility
+│   │   └── formatters.ts             # Data formatters
+│   └── prisma.ts                     # Database client
 ├── prisma/
-│   └── schema.prisma           # Database schema
-└── .env.local                  # Environment variables
+│   └── schema.prisma                 # Database schema
+└── .env.local                        # Environment variables
 ```
 
 ## 🤔 Design Decisions
@@ -213,10 +332,18 @@ An intelligent CRM system with AI-powered lead discovery, pipeline management, a
 - Sales team takes over manual communication
 - Sequences can resume if deal is lost (nurture mode)
 
-### Why auto-create companies from AI search?
-- Streamlined workflow (search → CRM in one step)
-- Duplicate detection prevents redundancy
-- Source tracking maintains data provenance
+### Why two-step AI lead finder (search → review → confirm)?
+- **User control**: Sales teams can review quality before importing
+- **Prevent bad data**: Not all AI results are perfect matches
+- **Selective import**: Choose only the most relevant leads
+- **Bulk efficiency**: Still faster than manual research
+- **Quality over quantity**: Better to import 10 perfect leads than 20 mediocre ones
+
+### Why tabbed company detail page?
+- **Organized information**: Separates different data types clearly
+- **Reduced clutter**: Only shows relevant information per tab
+- **Quick navigation**: Easy to jump to people, deals, or activity
+- **Scalability**: Easy to add new tabs (e.g., documents, notes) later
 
 ## 🚧 Future Improvements
 
@@ -235,20 +362,47 @@ Given more time, these features would be added:
 
 To test the application:
 
-1. **AI Lead Generation**:
-   - Try: "SaaS companies in London with 50-200 employees"
-   - Check that companies are created with confidence scores
-   - Verify duplicate detection works
+1. **Dashboard**:
+   - Visit homepage and verify metrics load correctly
+   - Check that quick actions navigate to correct pages
 
-2. **Pipeline Management**:
+2. **AI Lead Generation**:
+   - Try: "SaaS companies in London with 50-200 employees"
+   - Review the results page
+   - Deselect some companies, add others
+   - Verify selected companies are created with confidence scores
+   - Try adding the same companies again to test duplicate detection
+
+3. **Company Management**:
+   - View company detail page
+   - Navigate between tabs (Overview, People, Deals, Activity)
+   - Add a person from the People tab
+   - Add an event from quick actions
+
+4. **People Management**:
+   - Navigate to People page
+   - Search for a contact by name or email
+   - Add a new person
+   - Verify they appear on the company detail page
+
+5. **Events & Activities**:
+   - Create different event types (call, email, meeting, task, note)
+   - Filter by status (pending/completed)
+   - Filter by type
+   - Mark a task as complete
+   - Verify events appear on company timeline
+
+6. **Pipeline Management**:
    - Create a deal from a company
    - Move deal to "Demo" stage
    - Verify automated task creation
+   - Check that events appear on company activity tab
 
-3. **Email Sequences**:
-   - Create a simple sequence
-   - Enroll a company
-   - Create a deal and verify sequence pauses
+7. **Email Sequences**:
+   - Create a multi-step sequence
+   - Add 3-4 email steps with delays
+   - Configure automation settings
+   - Verify sequence appears in list
 
 ## 📝 Environment Variables Reference
 

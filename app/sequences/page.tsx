@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function SequencesPage() {
   const [sequences, setSequences] = useState<any[]>([]);
@@ -29,7 +30,9 @@ export default function SequencesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Email Sequences</h1>
-        <Button>➕ Create Sequence</Button>
+        <Link href="/sequences/new">
+          <Button>➕ Create Sequence</Button>
+        </Link>
       </div>
 
       {loading && (
@@ -42,7 +45,9 @@ export default function SequencesPage() {
             <p className="text-gray-600 mb-4">
               No email sequences yet. Create one to automate your outreach!
             </p>
-            <Button>➕ Create Your First Sequence</Button>
+            <Link href="/sequences/new">
+              <Button>➕ Create Your First Sequence</Button>
+            </Link>
           </CardContent>
         </Card>
       )}

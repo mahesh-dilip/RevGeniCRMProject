@@ -8,7 +8,9 @@ const navItems = [
   { name: 'Dashboard', href: '/' },
   { name: 'AI Lead Finder', href: '/ai-lead-finder' },
   { name: 'Companies', href: '/companies' },
+  { name: 'People', href: '/people' },
   { name: 'Deals', href: '/deals' },
+  { name: 'Events', href: '/events' },
   { name: 'Sequences', href: '/sequences' },
 ];
 

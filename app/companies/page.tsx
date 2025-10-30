@@ -109,9 +109,11 @@ export default function CompaniesPage() {
                 </a>
               )}
 
-              <Button size="sm" className="w-full" variant="outline">
-                View Details
-              </Button>
+              <Link href={`/companies/${company.id}`} className="w-full">
+                <Button size="sm" className="w-full" variant="outline">
+                  View Details
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         ))}
