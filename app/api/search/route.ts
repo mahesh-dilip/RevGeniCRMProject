@@ -1,27 +1,24 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createGetHandler } from '@/lib/middleware/api-wrapper';
 
-export const GET = createGetHandler({
-  permission: 'VIEW_ALL_DATA',
-  handler: async ({ auth, request }) => {
+export async function GET(request: Request) {
+  try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
 
     if (!query || query.trim().length < 2) {
-      return {
+      return NextResponse.json({
         companies: [],
         people: [],
         deals: []
-      };
+      });
     }
 
     const searchTerm = query.trim().toLowerCase();
 
-    // Search companies - WITH TENANT ISOLATION
+    // Search companies
     const companies = await prisma.company.findMany({
       where: {
-        tenantId: auth.tenantId,
         OR: [
           { name: { contains: searchTerm, mode: 'insensitive' } },
           { website: { contains: searchTerm, mode: 'insensitive' } },
@@ -32,10 +29,9 @@ export const GET = createGetHandler({
       orderBy: { createdAt: 'desc' }
     });
 
-    // Search people - WITH TENANT ISOLATION
+    // Search people
     const people = await prisma.person.findMany({
       where: {
-        tenantId: auth.tenantId,
         OR: [
           { firstName: { contains: searchTerm, mode: 'insensitive' } },
           { lastName: { contains: searchTerm, mode: 'insensitive' } },
@@ -48,10 +44,9 @@ export const GET = createGetHandler({
       orderBy: { createdAt: 'desc' }
     });
 
-    // Search deals - WITH TENANT ISOLATION
+    // Search deals
     const deals = await prisma.deal.findMany({
       where: {
-        tenantId: auth.tenantId,
         OR: [
           { title: { contains: searchTerm, mode: 'insensitive' } },
           { description: { contains: searchTerm, mode: 'insensitive' } }
@@ -62,11 +57,17 @@ export const GET = createGetHandler({
       orderBy: { createdAt: 'desc' }
     });
 
-    return {
+    return NextResponse.json({
       companies,
       people,
       deals
-    };
-  },
-});
+    });
+  } catch (error) {
+    console.error('Search error:', error);
+    return NextResponse.json(
+      { error: 'Search failed' },
+      { status: 500 }
+    );
+  }
+}
 
