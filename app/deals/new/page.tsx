@@ -33,13 +33,28 @@ function NewDealForm() {
   });
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/companies').then(r => r.json()),
-      fetch('/api/people').then(r => r.json())
-    ]).then(([companiesData, peopleData]) => {
-      setCompanies(companiesData);
-      setPeople(peopleData);
-    });
+    const fetchData = async () => {
+      try {
+        const [companiesRes, peopleRes] = await Promise.all([
+          fetch('/api/companies'),
+          fetch('/api/people')
+        ]);
+
+        const companiesData = await companiesRes.json();
+        const peopleData = await peopleRes.json();
+
+        // Ensure we have arrays even if API returns errors
+        setCompanies(Array.isArray(companiesData) ? companiesData : []);
+        setPeople(Array.isArray(peopleData) ? peopleData : []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load companies and contacts');
+        setCompanies([]);
+        setPeople([]);
+      }
+    };
+
+    fetchData();
   }, []);
 
   useEffect(() => {

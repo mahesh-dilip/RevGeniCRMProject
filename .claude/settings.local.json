@@ -6,7 +6,12 @@
       "Bash(npx prisma generate:*)",
       "Bash(npm run build:*)",
       "Bash(npx prisma db push:*)",
-      "Bash(npx prisma db seed:*)"
+      "Bash(npx prisma db seed:*)",
+      "Bash(cat:*)",
+      "Bash(nc:*)",
+      "Bash(psql:*)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
