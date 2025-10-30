@@ -1,13 +1,28 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { addDays } from 'date-fns';
+import { getAuthContext } from '@/lib/auth/context';
+import { requirePermission } from '@/lib/auth/permissions';
+import { rateLimit } from '@/lib/middleware/rate-limit';
+import { validateRequest, EnrollSequenceSchema } from '@/lib/validations/api';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const body = await request.json();
+    // 1. Authentication
+    const authContext = await getAuthContext();
+    
+    // 2. Rate limiting (sequence enrollments are expensive)
+    const rateLimitResponse = await rateLimit(authContext.userId, 'sequences');
+    if (rateLimitResponse) return rateLimitResponse;
+    
+    // 3. Authorization
+    requirePermission(authContext, 'ENROLL_SEQUENCE');
+
+    const { id } = await params;
+    const body = await validateRequest(request, EnrollSequenceSchema);
     const { companyId, contactId, enrollments } = body;
 
     // Support both single and bulk enrollment
@@ -22,7 +37,7 @@ export async function POST(
 
     // Check if sequence exists and is active
     const sequence = await prisma.emailSequence.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { steps: { orderBy: { stepOrder: 'asc' } } }
     });
 
@@ -49,10 +64,21 @@ export async function POST(
     // Process each enrollment
     for (const { companyId, contactId } of enrollmentList) {
       try {
+        // Verify company belongs to user's tenant
+        const company = await prisma.company.findFirst({
+          where: { id: companyId, tenantId: authContext.tenantId },
+          include: { people: true }
+        });
+
+        if (!company) {
+          results.errors.push(`Company ${companyId} not found`);
+          continue;
+        }
+
         // Check if company is already enrolled
         const existingEnrollment = await prisma.sequenceEnrollment.findFirst({
           where: {
-            sequenceId: params.id,
+            sequenceId: id,
             companyId,
             status: { in: ['active', 'paused'] }
           }
@@ -60,17 +86,6 @@ export async function POST(
 
         if (existingEnrollment) {
           results.skipped.push(companyId);
-          continue;
-        }
-
-        // Get company info for personalization
-        const company = await prisma.company.findUnique({
-          where: { id: companyId },
-          include: { people: true }
-        });
-
-        if (!company) {
-          results.errors.push(`Company ${companyId} not found`);
           continue;
         }
 
@@ -87,7 +102,7 @@ export async function POST(
         // Create enrollment
         const enrollment = await prisma.sequenceEnrollment.create({
           data: {
-            sequenceId: params.id,
+            sequenceId: id,
             companyId,
             status: 'active',
             currentStep: 0
@@ -156,9 +171,12 @@ export async function POST(
     });
   } catch (error) {
     console.error('Error enrolling in sequence:', error);
+    const status = error instanceof Error && error.message.includes('Forbidden') ? 403 : 
+                   error instanceof Error && error.message.includes('Validation') ? 400 : 
+                   error instanceof Error && error.message.includes('Rate limit') ? 429 : 500;
     return NextResponse.json(
-      { error: 'Failed to enroll in sequence' },
-      { status: 500 }
+      { error: error instanceof Error ? error.message : 'Failed to enroll in sequence' },
+      { status }
     );
   }
 }

@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createGetHandler, createPostHandler } from '@/lib/middleware/api-wrapper';
+import { CreateSequenceSchema } from '@/lib/validations/api';
 
-export async function GET() {
-  try {
+export const GET = createGetHandler({
+  permission: 'VIEW_ALL_DATA',
+  handler: async () => {
+    // Note: Sequences are global (not tenant-specific in schema)
     const sequences = await prisma.emailSequence.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
@@ -18,28 +22,22 @@ export async function GET() {
     });
 
     return NextResponse.json(sequences);
-  } catch (error) {
-    console.error('Error fetching sequences:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch sequences' },
-      { status: 500 }
-    );
-  }
-}
+  },
+});
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-
+export const POST = createPostHandler({
+  schema: CreateSequenceSchema,
+  permission: 'CREATE_SEQUENCE',
+  handler: async (data) => {
     const sequence = await prisma.emailSequence.create({
       data: {
-        name: body.name,
-        description: body.description,
-        active: body.active !== false,
-        pauseOnDealCreation: body.pauseOnDealCreation !== false,
-        pauseOnDealStages: body.pauseOnDealStages || ['Demo', 'Proposal'],
+        name: data.name,
+        description: data.description,
+        active: data.active !== false,
+        pauseOnDealCreation: data.pauseOnDealCreation !== false,
+        pauseOnDealStages: data.pauseOnDealStages || ['Demo', 'Proposal'],
         steps: {
-          create: body.steps?.map((step: any, index: number) => ({
+          create: data.steps?.map((step, index) => ({
             stepOrder: index + 1,
             delayDays: step.delayDays,
             subject: step.subject,
@@ -55,11 +53,5 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(sequence);
-  } catch (error) {
-    console.error('Error creating sequence:', error);
-    return NextResponse.json(
-      { error: 'Failed to create sequence' },
-      { status: 500 }
-    );
-  }
-}
+  },
+});

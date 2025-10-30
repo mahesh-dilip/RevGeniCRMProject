@@ -1,24 +1,27 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createGetHandler } from '@/lib/middleware/api-wrapper';
 
-export async function GET(request: Request) {
-  try {
+export const GET = createGetHandler({
+  permission: 'VIEW_ALL_DATA',
+  handler: async ({ auth, request }) => {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
 
     if (!query || query.trim().length < 2) {
-      return NextResponse.json({
+      return {
         companies: [],
         people: [],
         deals: []
-      });
+      };
     }
 
     const searchTerm = query.trim().toLowerCase();
 
-    // Search companies
+    // Search companies - WITH TENANT ISOLATION
     const companies = await prisma.company.findMany({
       where: {
+        tenantId: auth.tenantId,
         OR: [
           { name: { contains: searchTerm, mode: 'insensitive' } },
           { website: { contains: searchTerm, mode: 'insensitive' } },
@@ -29,9 +32,10 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Search people
+    // Search people - WITH TENANT ISOLATION
     const people = await prisma.person.findMany({
       where: {
+        tenantId: auth.tenantId,
         OR: [
           { firstName: { contains: searchTerm, mode: 'insensitive' } },
           { lastName: { contains: searchTerm, mode: 'insensitive' } },
@@ -44,9 +48,10 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Search deals
+    // Search deals - WITH TENANT ISOLATION
     const deals = await prisma.deal.findMany({
       where: {
+        tenantId: auth.tenantId,
         OR: [
           { title: { contains: searchTerm, mode: 'insensitive' } },
           { description: { contains: searchTerm, mode: 'insensitive' } }
@@ -57,17 +62,11 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' }
     });
 
-    return NextResponse.json({
+    return {
       companies,
       people,
       deals
-    });
-  } catch (error) {
-    console.error('Search error:', error);
-    return NextResponse.json(
-      { error: 'Search failed' },
-      { status: 500 }
-    );
-  }
-}
+    };
+  },
+});
 
