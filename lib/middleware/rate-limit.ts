@@ -1,56 +1,42 @@
-import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
 
-// Only create Redis instance if credentials are provided
-const redis =
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-    ? new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      })
-    : null;
+/**
+ * In-Memory Rate Limiting
+ * 
+ * This implementation uses an in-memory Map to track rate limits.
+ * Perfect for single-server deployments (Vercel, Railway, etc.)
+ * 
+ * Note: Limits reset on server restart, which is usually acceptable.
+ * For multi-server deployments with shared limits, consider Redis or database-based rate limiting.
+ */
 
-// Rate limiters for different operation types
-export const rateLimiters = {
-  // AI operations: 5 requests per minute per user
-  ai: redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(5, '1 m'),
-        prefix: 'ratelimit:ai',
-      })
-    : null,
+export type RateLimitType = 'ai' | 'bulk' | 'api' | 'sequences';
 
-  // Bulk operations: 3 requests per minute per user
-  bulk: redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(3, '1 m'),
-        prefix: 'ratelimit:bulk',
-      })
-    : null,
+// In-memory store for rate limiting
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+}
 
-  // Standard API: 60 requests per minute per user
-  api: redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(60, '1 m'),
-        prefix: 'ratelimit:api',
-      })
-    : null,
+const rateLimitStore = new Map<string, RateLimitEntry>();
 
-  // Sequences: 10 enrollments per hour per user
-  sequences: redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(10, '1 h'),
-        prefix: 'ratelimit:sequences',
-      })
-    : null,
+// Rate limit configurations (requests per window)
+const rateLimitConfigs = {
+  ai: { limit: 5, windowMs: 60 * 1000 },           // 5 per minute
+  bulk: { limit: 3, windowMs: 60 * 1000 },         // 3 per minute
+  api: { limit: 60, windowMs: 60 * 1000 },         // 60 per minute
+  sequences: { limit: 10, windowMs: 60 * 60 * 1000 }, // 10 per hour
 };
 
-export type RateLimitType = keyof typeof rateLimiters;
+// Cleanup old entries every 5 minutes to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (entry.resetTime < now) {
+      rateLimitStore.delete(key);
+    }
+  }
+}, 5 * 60 * 1000);
 
 /**
  * Apply rate limiting to a request.
@@ -64,52 +50,63 @@ export async function rateLimit(
   identifier: string,
   type: RateLimitType = 'api'
 ): Promise<NextResponse | null> {
-  const limiter = rateLimiters[type];
+  const config = rateLimitConfigs[type];
+  const key = `${type}:${identifier}`;
+  const now = Date.now();
 
-  // If rate limiting is not configured (dev mode), allow all requests
-  if (!limiter) {
-    console.warn(`Rate limiting not configured for type: ${type}. Allowing request.`);
-    return null;
+  // Get or create entry
+  let entry = rateLimitStore.get(key);
+
+  // Reset if window expired
+  if (!entry || entry.resetTime < now) {
+    entry = {
+      count: 0,
+      resetTime: now + config.windowMs,
+    };
+    rateLimitStore.set(key, entry);
   }
 
-  try {
-    const { success, limit, reset, remaining } = await limiter.limit(identifier);
+  // Increment count
+  entry.count++;
 
-    if (!success) {
-      const resetDate = new Date(reset);
-      const retryAfter = Math.ceil((resetDate.getTime() - Date.now()) / 1000);
+  // Check if limit exceeded
+  if (entry.count > config.limit) {
+    const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
+    const resetDate = new Date(entry.resetTime);
 
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          message: `Too many requests. Please try again in ${retryAfter} seconds.`,
-          limit,
-          remaining: 0,
-          reset: resetDate.toISOString(),
+    return NextResponse.json(
+      {
+        error: 'Rate limit exceeded',
+        message: `Too many requests. Please try again in ${retryAfter} seconds.`,
+        limit: config.limit,
+        remaining: 0,
+        reset: resetDate.toISOString(),
+      },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': config.limit.toString(),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': entry.resetTime.toString(),
+          'Retry-After': retryAfter.toString(),
         },
-        {
-          status: 429,
-          headers: {
-            'X-RateLimit-Limit': limit.toString(),
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': reset.toString(),
-            'Retry-After': retryAfter.toString(),
-          },
-        }
-      );
-    }
-
-    // Rate limit not exceeded
-    return null;
-  } catch (error) {
-    console.error('Rate limiting error:', error);
-    // On rate limiting errors, fail open (allow the request)
-    return null;
+      }
+    );
   }
+
+  // Calculate remaining requests
+  const remaining = Math.max(0, config.limit - entry.count);
+
+  // Optional: Add rate limit headers to successful responses
+  // This could be added to the API wrapper if needed
+
+  // Still within limit
+  return null;
 }
 
 /**
  * Higher-order function to wrap API routes with rate limiting
+ * (Kept for backward compatibility, though not currently used)
  */
 export function withRateLimit(
   handler: (request: Request, context?: any) => Promise<Response>,

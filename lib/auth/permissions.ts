@@ -43,7 +43,7 @@ export type Permission = keyof typeof Permissions;
  */
 export function hasPermission(authContext: AuthContext, permission: Permission): boolean {
   const allowedRoles = Permissions[permission];
-  return allowedRoles.includes(authContext.role);
+  return (allowedRoles as readonly UserRole[]).includes(authContext.role);
 }
 
 /**
