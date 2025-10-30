@@ -11,7 +11,9 @@
       "Bash(nc:*)",
       "Bash(psql:*)",
       "Bash(npm run dev:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(chmod:*)",
+      "Bash(./test-rate-limit.sh:*)"
     ],
     "deny": [],
     "ask": []

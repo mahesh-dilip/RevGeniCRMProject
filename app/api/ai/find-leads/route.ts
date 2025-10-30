@@ -4,9 +4,29 @@ import { prisma } from '@/lib/prisma';
 import { checkForDuplicate } from '@/lib/security/duplicate-detection';
 import { validateRequest } from '@/lib/middleware/validate';
 import { FindLeadsSchema } from '@/lib/validations/ai';
+import { rateLimit, getClientIdentifier } from '@/lib/middleware/rate-limit-memory';
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting - AI endpoints are expensive (OpenAI + Exa API)
+    const identifier = getClientIdentifier(request);
+    const rateLimitResult = await rateLimit(identifier, 'ai');
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded. Too many AI requests.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter),
+          },
+        }
+      );
+    }
+
     // Validate request body
     const validation = await validateRequest(request, FindLeadsSchema);
     if ('error' in validation) {

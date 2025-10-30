@@ -3,12 +3,32 @@ import { prisma } from '@/lib/prisma';
 import { addDays } from 'date-fns';
 import { validateRequest } from '@/lib/middleware/validate';
 import { EnrollSequenceSchema } from '@/lib/validations/sequences';
+import { rateLimit, getClientIdentifier } from '@/lib/middleware/rate-limit-memory';
 
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    // Rate limiting - Email sequence enrollment can trigger many scheduled emails
+    const identifier = getClientIdentifier(request);
+    const rateLimitResult = await rateLimit(identifier, 'bulk');
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded. Too many sequence enrollments.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter),
+          },
+        }
+      );
+    }
+
     // Validate request body
     const validation = await validateRequest(request, EnrollSequenceSchema);
     if ('error' in validation) {

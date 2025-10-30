@@ -3,9 +3,29 @@ import { prisma } from '@/lib/prisma';
 import { checkForDuplicate } from '@/lib/security/duplicate-detection';
 import { validateRequest } from '@/lib/middleware/validate';
 import { BulkCreateCompaniesSchema } from '@/lib/validations/companies';
+import { rateLimit, getClientIdentifier } from '@/lib/middleware/rate-limit-memory';
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting - Bulk operations can flood the database
+    const identifier = getClientIdentifier(request);
+    const rateLimitResult = await rateLimit(identifier, 'bulk');
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded. Too many bulk operations.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter),
+          },
+        }
+      );
+    }
+
     // Validate request body
     const validation = await validateRequest(request, BulkCreateCompaniesSchema);
     if ('error' in validation) {
