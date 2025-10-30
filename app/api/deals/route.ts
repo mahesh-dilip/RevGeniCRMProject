@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { onDealCreated } from '@/lib/automations/triggers';
 
 export async function GET() {
   try {
@@ -33,8 +34,10 @@ export async function POST(request: Request) {
         probability: body.probability,
         closeDate: body.closeDate ? new Date(body.closeDate) : null,
         description: body.description,
+        nextAction: body.nextAction,
         companyId: body.companyId,
         primaryContactId: body.primaryContactId,
+        stageChangedAt: new Date()
       },
       include: {
         company: true,
@@ -42,16 +45,20 @@ export async function POST(request: Request) {
       },
     });
 
+    // Create initial event
     await prisma.event.create({
       data: {
         type: 'note',
-        title: 'Deal created',
-        description: `New deal "${deal.title}" created`,
-        source: 'manual',
+        title: `Deal created in ${deal.stage} stage`,
+        description: `New deal "${deal.title}" created with ${deal.company.name}`,
+        source: 'automation',
         companyId: deal.companyId,
         dealId: deal.id,
       },
     });
+
+    // Trigger automations
+    await onDealCreated(deal.id);
 
     return NextResponse.json(deal);
   } catch (error) {

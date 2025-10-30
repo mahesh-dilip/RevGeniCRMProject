@@ -56,15 +56,15 @@ export default function DealsPage() {
         <div className="overflow-x-auto">
           <div className="flex gap-4 min-w-max pb-4">
             {DEAL_STAGES.map((stage) => {
-              const stageDeals = getDealsByStage(stage);
-              const totalValue = getTotalValueByStage(stage);
+              const stageDeals = getDealsByStage(stage.value);
+              const totalValue = getTotalValueByStage(stage.value);
 
               return (
-                <div key={stage} className="w-80 flex-shrink-0">
+                <div key={stage.value} className="w-80 flex-shrink-0">
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm font-medium">
-                        {stage}
+                        {stage.label}
                       </CardTitle>
                       <div className="flex justify-between text-xs text-gray-500">
                         <span>{stageDeals.length} deals</span>

@@ -44,6 +44,17 @@ model Company {
   sourceQuery String?
   confidence  Float?
 
+  // Lifecycle & Lead Management
+  lifecycleStage String   @default("lead")
+  leadSource     String?
+  leadScore      Int?
+  lastEngaged    DateTime?
+
+  // Engagement tracking
+  emailOpens     Int      @default(0)
+  emailClicks    Int      @default(0)
+  websiteVisits  Int      @default(0)
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

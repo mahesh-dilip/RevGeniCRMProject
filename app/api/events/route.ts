@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { onEventCreated } from '@/lib/automations/triggers';
 
 export async function GET(request: Request) {
   try {
@@ -82,6 +83,11 @@ export async function POST(request: Request) {
         deal: true,
       },
     });
+
+    // Trigger automations
+    if (event.companyId) {
+      await onEventCreated(event.id);
+    }
 
     return NextResponse.json(event);
   } catch (error) {
