@@ -86,12 +86,13 @@ export function TaskCard({ task }: TaskCardProps) {
                 {task.title}
               </h3>
               {task.priority && (
-                <span className={`text-xs px-2 py-1 rounded whitespace-nowrap ${
-                  task.priority === 'high' ? 'bg-red-100 text-red-700' :
-                  task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                  'bg-gray-100 text-gray-700'
+                <span className={`text-xs font-semibold px-2 py-1 rounded whitespace-nowrap ${
+                  task.priority === 'high' ? 'bg-red-600 text-white' :
+                  task.priority === 'medium' ? 'bg-orange-500 text-white' :
+                  'bg-slate-400 text-white'
                 }`}>
-                  {task.priority}
+                  {task.priority === 'high' ? '🔴 ' : task.priority === 'medium' ? '🟠 ' : ''}
+                  {task.priority.toUpperCase()}
                 </span>
               )}
             </div>

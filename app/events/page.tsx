@@ -210,16 +210,14 @@ export default function EventsPage() {
                           </Badge>
                         )}
                         {event.priority && event.type === 'task' && !event.completed && (
-                          <Badge
-                            variant={
-                              event.priority === 'high' ? 'destructive' :
-                              event.priority === 'medium' ? 'default' :
-                              'secondary'
-                            }
-                            className="ml-2"
-                          >
-                            {event.priority}
-                          </Badge>
+                          <span className={`text-xs font-semibold px-2 py-1 rounded whitespace-nowrap ml-2 ${
+                            event.priority === 'high' ? 'bg-red-600 text-white' :
+                            event.priority === 'medium' ? 'bg-orange-500 text-white' :
+                            'bg-slate-400 text-white'
+                          }`}>
+                            {event.priority === 'high' ? '🔴 ' : event.priority === 'medium' ? '🟠 ' : ''}
+                            {event.priority.toUpperCase()}
+                          </span>
                         )}
                       </td>
                       <td className="p-4">

@@ -206,15 +206,14 @@ export default async function EventDetailPage({
               {event.priority && (
                 <div>
                   <p className="text-gray-600 mb-1">Priority</p>
-                  <Badge
-                    variant={
-                      event.priority === 'high' ? 'destructive' :
-                      event.priority === 'medium' ? 'default' :
-                      'secondary'
-                    }
-                  >
+                  <span className={`text-xs font-semibold px-2 py-1 rounded inline-block ${
+                    event.priority === 'high' ? 'bg-red-600 text-white' :
+                    event.priority === 'medium' ? 'bg-orange-500 text-white' :
+                    'bg-slate-400 text-white'
+                  }`}>
+                    {event.priority === 'high' ? '🔴 ' : event.priority === 'medium' ? '🟠 ' : ''}
                     {event.priority.toUpperCase()}
-                  </Badge>
+                  </span>
                 </div>
               )}
 

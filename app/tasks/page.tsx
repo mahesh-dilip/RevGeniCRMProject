@@ -256,16 +256,14 @@ function TaskCard({ task, onToggle, isOverdue }: TaskCardProps) {
 
             {/* Priority Badge */}
             {task.priority && !task.completed && (
-              <Badge
-                variant={
-                  task.priority === 'high' ? 'destructive' :
-                  task.priority === 'medium' ? 'default' :
-                  'secondary'
-                }
-                className="ml-2"
-              >
+              <span className={`text-xs font-semibold px-2 py-1 rounded whitespace-nowrap ml-2 ${
+                task.priority === 'high' ? 'bg-red-600 text-white' :
+                task.priority === 'medium' ? 'bg-orange-500 text-white' :
+                'bg-slate-400 text-white'
+              }`}>
+                {task.priority === 'high' ? '🔴 ' : task.priority === 'medium' ? '🟠 ' : ''}
                 {task.priority.toUpperCase()}
-              </Badge>
+              </span>
             )}
           </div>
 
