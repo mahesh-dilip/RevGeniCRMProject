@@ -76,28 +76,79 @@ export async function POST(
     const createdPeople = [];
     let skippedDuplicates = 0;
     let skippedNoLinkedIn = 0;
+    let skippedNoCompanyMatch = 0;
     const criteria = webset.criteria as any;
+    const searchedCompany = criteria?.companyNames?.[0] || '';
+
+    // Log first item to understand structure
+    if (selectedItems.length > 0) {
+      logInfo('Sample selected item structure', {
+        properties: (selectedItems[0] as any).properties,
+        enrichments: (selectedItems[0] as any).enrichments,
+        searchedCompany,
+      });
+    }
+
+    // Fuzzy company name matching function
+    const companiesMatch = (company1: string | null, company2: string | null): boolean => {
+      if (!company1 || !company2) return false;
+
+      const normalize = (str: string) => str.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      const c1 = normalize(company1);
+      const c2 = normalize(company2);
+
+      // Exact match after normalization
+      if (c1 === c2) return true;
+
+      // One contains the other (handles cases like "Acin" vs "Acin Inc")
+      if (c1.includes(c2) || c2.includes(c1)) return true;
+
+      return false;
+    };
 
     for (const item of selectedItems) {
       try {
         const properties = (item as any).properties || {};
         const enrichments = (item as any).enrichments || [];
+        const personProps = properties.person || {};
 
-        const getEnrichmentValue = (formatType?: string, index: number = 0): string | null => {
-          const enrichment = formatType
-            ? enrichments.find((e: any) => e.format === formatType)
-            : enrichments[index];
-          return enrichment?.result?.[0] || null;
-        };
+        // Extract data from person object and enrichments
+        // Enrichments are in order: [name, email, linkedin, company, job title, location]
+        const textEnrichments = enrichments.filter((e: any) => e.format === 'text');
+        const emailEnrichment = enrichments.find((e: any) => e.format === 'email');
+        const urlEnrichments = enrichments.filter((e: any) => e.format === 'url');
+
+        const personName = personProps.name || textEnrichments[0]?.result?.[0] || 'Unknown';
+        const email = emailEnrichment?.result?.[0] || null;
+        const linkedinUrl = properties.url || urlEnrichments[0]?.result?.[0] || null;
+        const companyName = personProps.company?.name || textEnrichments[1]?.result?.[0] || null;
+        const jobTitle = personProps.position || textEnrichments[2]?.result?.[0] || null;
+        const location = personProps.location || textEnrichments[3]?.result?.[0] || null;
 
         const personData = {
-          name: getEnrichmentValue('text', 0) || properties.name || 'Unknown',
-          email: getEnrichmentValue('email') || null,
-          linkedinUrl: getEnrichmentValue('url') || properties.url || null,
-          jobTitle: getEnrichmentValue('text', 1) || properties.title || null,
-          companyName: properties.company || null,
-          location: properties.location || null,
+          name: personName,
+          email: email,
+          linkedinUrl: linkedinUrl,
+          jobTitle: jobTitle,
+          companyName: companyName,
+          location: location,
         };
+
+        logInfo('Extracted person data from webset', {
+          personData,
+          searchedCompany,
+        });
+
+        // Skip if company doesn't match the searched company
+        if (searchedCompany && !companiesMatch(personData.companyName, searchedCompany)) {
+          logInfo('Skipping person - company name does not match', {
+            name: personData.name,
+            extractedCompany: personData.companyName,
+            searchedCompany: searchedCompany,
+          });
+          skippedNoCompanyMatch++;
+          continue;
+        }
 
         // Skip if no LinkedIn URL (required for deduplication)
         if (!personData.linkedinUrl) {
@@ -201,6 +252,7 @@ export async function POST(
       imported: createdPeople.length,
       skippedDuplicates,
       skippedNoLinkedIn,
+      skippedNoCompanyMatch,
       selected: selectedIds.length,
       tenantId,
     });
@@ -211,6 +263,7 @@ export async function POST(
       people: createdPeople,
       skippedDuplicates,
       skippedNoLinkedIn,
+      skippedNoCompanyMatch,
     });
   } catch (error) {
     logError('Error importing selected people', error);

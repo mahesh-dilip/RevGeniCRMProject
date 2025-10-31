@@ -76,32 +76,51 @@ export async function GET(
     // Parse people data but don't import
     const people = [];
     const criteria = webset.criteria as any;
+    const searchedCompany = criteria?.companyNames?.[0] || '';
+
+    // Log first item to understand structure
+    if (items.length > 0) {
+      logInfo('Sample webset item structure', {
+        properties: (items[0] as any).properties,
+        enrichments: (items[0] as any).enrichments,
+      });
+    }
 
     for (const item of items) {
       try {
         const properties = (item as any).properties || {};
         const enrichments = (item as any).enrichments || [];
+        const person = properties.person || {};
 
-        const getEnrichmentValue = (formatType?: string, index: number = 0): string | null => {
-          const enrichment = formatType
-            ? enrichments.find((e: any) => e.format === formatType)
-            : enrichments[index];
-          return enrichment?.result?.[0] || null;
-        };
+        // Extract data from person object and enrichments
+        // Enrichments are in order: [name, email, linkedin, company, job title, location]
+        const textEnrichments = enrichments.filter((e: any) => e.format === 'text');
+        const emailEnrichment = enrichments.find((e: any) => e.format === 'email');
+        const urlEnrichments = enrichments.filter((e: any) => e.format === 'url');
+
+        const personName = person.name || textEnrichments[0]?.result?.[0] || 'Unknown';
+        const email = emailEnrichment?.result?.[0] || null;
+        const linkedinUrl = properties.url || urlEnrichments[0]?.result?.[0] || null;
+        const companyName = person.company?.name || textEnrichments[1]?.result?.[0] || null;
+        const jobTitle = person.position || textEnrichments[2]?.result?.[0] || null;
+        const location = person.location || textEnrichments[3]?.result?.[0] || null;
 
         const personData = {
           exaId: (item as any).id,
-          name: getEnrichmentValue('text', 0) || properties.name || 'Unknown',
-          email: getEnrichmentValue('email') || null,
-          linkedinUrl: getEnrichmentValue('url') || properties.url || null,
-          jobTitle: getEnrichmentValue('text', 1) || properties.title || null,
-          companyName: properties.company || null,
-          location: properties.location || null,
-          // Include raw enrichments for full data display
-          enrichments: enrichments.map((e: any) => ({
-            format: e.format,
-            result: e.result,
-          })),
+          name: personName,
+          email: email,
+          linkedinUrl: linkedinUrl,
+          jobTitle: jobTitle,
+          companyName: companyName,
+          location: location,
+          // Include raw data for debugging
+          _raw: {
+            properties,
+            enrichments: enrichments.map((e: any) => ({
+              format: e.format,
+              result: e.result,
+            })),
+          },
         };
 
         people.push(personData);

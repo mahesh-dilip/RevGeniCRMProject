@@ -19,7 +19,8 @@
       "Bash(kill:*)",
       "Bash(npx tsc:*)",
       "Bash(node test-exa-websets.js:*)",
-      "Bash(xargs kill -9)"
+      "Bash(xargs kill -9)",
+      "Bash(node test-exa-people.js:*)"
     ],
     "deny": [],
     "ask": []

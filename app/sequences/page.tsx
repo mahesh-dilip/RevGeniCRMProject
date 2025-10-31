@@ -69,8 +69,8 @@ export default function SequencesPage() {
                   <tr>
                     <th className="text-left p-4 font-semibold text-sm">Sequence Name</th>
                     <th className="text-left p-4 font-semibold text-sm">Status</th>
-                    <th className="text-center p-4 font-semibold text-sm">Steps</th>
-                    <th className="text-center p-4 font-semibold text-sm">Enrollments</th>
+                    <th className="text-right p-4 font-semibold text-sm">Steps</th>
+                    <th className="text-right p-4 font-semibold text-sm">Enrollments</th>
                     <th className="text-left p-4 font-semibold text-sm">Settings</th>
                     <th className="text-left p-4 font-semibold text-sm">Created</th>
                     <th className="text-right p-4 font-semibold text-sm">Actions</th>
@@ -78,12 +78,15 @@ export default function SequencesPage() {
                 </thead>
                 <tbody>
                   {sequences.map((sequence: any) => (
-                    <tr key={sequence.id} className="border-b hover:bg-gray-50">
+                    <tr key={sequence.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={(e) => {
+                      if ((e.target as HTMLElement).closest('a, button')) return;
+                      window.location.href = `/sequences/${sequence.id}`;
+                    }}>
                       <td className="p-4">
                         <div>
                           <Link
                             href={`/sequences/${sequence.id}`}
-                            className="font-medium hover:text-blue-600"
+                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
                           >
                             {sequence.name}
                           </Link>
@@ -99,11 +102,11 @@ export default function SequencesPage() {
                           {sequence.active ? '✓ Active' : 'Inactive'}
                         </Badge>
                       </td>
-                      <td className="p-4 text-center">
-                        <span className="text-sm font-medium">{sequence.steps?.length || 0}</span>
+                      <td className="p-4 text-right">
+                        <span className="text-sm font-medium text-gray-900">{sequence.steps?.length || 0}</span>
                       </td>
-                      <td className="p-4 text-center">
-                        <span className="text-sm font-medium">
+                      <td className="p-4 text-right">
+                        <span className="text-sm font-medium text-gray-900">
                           {sequence._count?.enrollments || 0}
                         </span>
                       </td>
@@ -120,14 +123,11 @@ export default function SequencesPage() {
                           )}
                         </div>
                       </td>
-                      <td className="p-4 text-sm text-gray-600">
+                      <td className="p-4 text-sm text-gray-700">
                         {format(new Date(sequence.createdAt), 'MMM d, yyyy')}
                       </td>
                       <td className="p-4">
                         <div className="flex gap-2 justify-end">
-                          <Link href={`/sequences/${sequence.id}`}>
-                            <Button variant="outline" size="sm">View</Button>
-                          </Link>
                           <Link href={`/sequences/${sequence.id}/edit`}>
                             <Button size="sm" variant="outline">Edit</Button>
                           </Link>

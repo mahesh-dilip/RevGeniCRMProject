@@ -111,21 +111,25 @@ export default function ActivitiesPage() {
                   <th className="text-left p-4 font-semibold text-sm">Activity</th>
                   <th className="text-left p-4 font-semibold text-sm">Related To</th>
                   <th className="text-left p-4 font-semibold text-sm">Date</th>
-                  <th className="text-right p-4 font-semibold text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredActivities.map((activity) => (
-                  <tr key={activity.id} className="border-b hover:bg-gray-50">
+                  <tr key={activity.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={(e) => {
+                    if ((e.target as HTMLElement).closest('a, button')) return;
+                    window.location.href = `/events/${activity.id}`;
+                  }}>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{EVENT_ICONS[activity.type] || '📋'}</span>
-                        <span className="text-sm capitalize">{activity.type}</span>
+                        <span className="text-sm capitalize text-gray-700">{activity.type}</span>
                       </div>
                     </td>
                     <td className="p-4">
                       <div>
-                        <p className="font-medium">{activity.title}</p>
+                        <Link href={`/events/${activity.id}`} className="font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                          {activity.title}
+                        </Link>
                         {activity.description && (
                           <p className="text-sm text-gray-500 line-clamp-1 mt-1">
                             {activity.description}
@@ -138,7 +142,7 @@ export default function ActivitiesPage() {
                         {activity.company && (
                           <Link
                             href={`/companies/${activity.company.id}`}
-                            className="block text-blue-600 hover:underline"
+                            className="block text-blue-600 hover:text-blue-800 hover:underline"
                           >
                             🏢 {activity.company.name}
                           </Link>
@@ -151,24 +155,17 @@ export default function ActivitiesPage() {
                         {activity.deal && (
                           <Link
                             href={`/deals/${activity.deal.id}`}
-                            className="block text-blue-600 hover:underline"
+                            className="block text-blue-600 hover:text-blue-800 hover:underline"
                           >
                             💼 {activity.deal.title}
                           </Link>
                         )}
                       </div>
                     </td>
-                    <td className="p-4 text-sm text-gray-600">
+                    <td className="p-4 text-sm text-gray-700">
                       {format(new Date(activity.createdAt), 'MMM d, yyyy')}
                       <div className="text-xs text-gray-400">
                         {format(new Date(activity.createdAt), 'h:mm a')}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex gap-2 justify-end">
-                        <Link href={`/events/${activity.id}`}>
-                          <Button variant="outline" size="sm">View</Button>
-                        </Link>
                       </div>
                     </td>
                   </tr>

@@ -234,16 +234,17 @@ export default function CompaniesPage() {
                     <th className="text-left p-4 font-semibold text-sm">Company</th>
                     <th className="text-left p-4 font-semibold text-sm">Status</th>
                     <th className="text-left p-4 font-semibold text-sm">Industry</th>
-                    <th className="text-left p-4 font-semibold text-sm">Size</th>
-                    <th className="text-left p-4 font-semibold text-sm">Lead Score</th>
-                    <th className="text-center p-4 font-semibold text-sm">Contacts</th>
-                    <th className="text-center p-4 font-semibold text-sm">Deals</th>
+                    <th className="text-right p-4 font-semibold text-sm">People</th>
+                    <th className="text-right p-4 font-semibold text-sm">Deals</th>
                     <th className="text-right p-4 font-semibold text-sm">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredCompanies.map((company: any) => (
-                    <tr key={company.id} className="border-b hover:bg-gray-50">
+                    <tr key={company.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={(e) => {
+                      if ((e.target as HTMLElement).closest('input, a, button')) return;
+                      window.location.href = `/companies/${company.id}`;
+                    }}>
                       <td className="py-3 px-4">
                         <Checkbox
                           checked={selectedIds.has(company.id)}
@@ -254,7 +255,7 @@ export default function CompaniesPage() {
                         <div>
                           <Link
                             href={`/companies/${company.id}`}
-                            className="font-medium hover:text-blue-600"
+                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
                           >
                             {company.name}
                           </Link>
@@ -277,37 +278,13 @@ export default function CompaniesPage() {
                           {company.status}
                         </Badge>
                       </td>
-                      <td className="p-4 text-sm">{company.industry || '-'}</td>
-                      <td className="p-4 text-sm">{company.size || '-'}</td>
-                      <td className="p-4">
-                        {company.leadScore !== null && company.leadScore !== undefined ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full ${
-                                  company.leadScore >= 80 ? 'bg-green-500' :
-                                  company.leadScore >= 60 ? 'bg-blue-500' :
-                                  company.leadScore >= 40 ? 'bg-yellow-500' :
-                                  'bg-red-500'
-                                }`}
-                                style={{ width: `${company.leadScore}%` }}
-                              />
-                            </div>
-                            <span className="text-sm font-medium">{company.leadScore}</span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="p-4 text-center text-sm">{company._count?.people || 0}</td>
-                      <td className="p-4 text-center text-sm">{company._count?.deals || 0}</td>
+                      <td className="p-4 text-sm text-gray-700">{company.industry || '-'}</td>
+                      <td className="p-4 text-right text-sm font-medium text-gray-900">{company._count?.people || 0}</td>
+                      <td className="p-4 text-right text-sm font-medium text-gray-900">{company._count?.deals || 0}</td>
                       <td className="p-4">
                         <div className="flex gap-2 justify-end">
-                          <Link href={`/companies/${company.id}`}>
-                            <Button variant="outline" size="sm">View</Button>
-                          </Link>
                           <Link href={`/deals/new?companyId=${company.id}`}>
-                            <Button size="sm">+ Deal</Button>
+                            <Button size="sm" variant="outline">+ Deal</Button>
                           </Link>
                         </div>
                       </td>

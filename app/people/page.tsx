@@ -42,9 +42,14 @@ export default function PeoplePage() {
           <h1 className="text-3xl font-bold">People</h1>
           <p className="text-gray-600">{people.length} contacts in your CRM</p>
         </div>
-        <Link href="/people/new">
-          <Button>+ Add Contact</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/ai-people-finder">
+            <Button variant="outline">🤖 Find People with AI</Button>
+          </Link>
+          <Link href="/people/new">
+            <Button>+ Add Contact</Button>
+          </Link>
+        </div>
       </div>
 
       <div className="flex gap-4">
@@ -72,59 +77,49 @@ export default function PeoplePage() {
                     <th className="text-left p-4 font-semibold text-sm">Title</th>
                     <th className="text-left p-4 font-semibold text-sm">Company</th>
                     <th className="text-left p-4 font-semibold text-sm">Email</th>
-                    <th className="text-left p-4 font-semibold text-sm">Phone</th>
-                    <th className="text-center p-4 font-semibold text-sm">Activities</th>
-                    <th className="text-center p-4 font-semibold text-sm">Deals</th>
+                    <th className="text-right p-4 font-semibold text-sm">Activities</th>
+                    <th className="text-right p-4 font-semibold text-sm">Deals</th>
                     <th className="text-right p-4 font-semibold text-sm">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredPeople.map((person: any) => (
-                    <tr key={person.id} className="border-b hover:bg-gray-50">
+                    <tr key={person.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={(e) => {
+                      if ((e.target as HTMLElement).closest('a, button')) return;
+                      window.location.href = `/people/${person.id}`;
+                    }}>
                       <td className="p-4">
                         <Link
                           href={`/people/${person.id}`}
-                          className="font-medium hover:text-blue-600"
+                          className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
                         >
                           {person.firstName} {person.lastName}
                         </Link>
                       </td>
-                      <td className="p-4 text-sm">{person.title || '-'}</td>
+                      <td className="p-4 text-sm text-gray-700">{person.title || '-'}</td>
                       <td className="p-4">
                         <Link
                           href={`/companies/${person.company.id}`}
-                          className="text-sm text-blue-600 hover:underline"
+                          className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
                         >
                           {person.company.name}
                         </Link>
                       </td>
                       <td className="p-4">
                         {person.email ? (
-                          <a href={`mailto:${person.email}`} className="text-sm text-blue-600 hover:underline">
+                          <a href={`mailto:${person.email}`} className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
                             {person.email}
                           </a>
                         ) : (
                           <span className="text-sm text-gray-400">-</span>
                         )}
                       </td>
-                      <td className="p-4">
-                        {person.phone ? (
-                          <a href={`tel:${person.phone}`} className="text-sm text-blue-600 hover:underline">
-                            {person.phone}
-                          </a>
-                        ) : (
-                          <span className="text-sm text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="p-4 text-center text-sm">{person._count?.events || 0}</td>
-                      <td className="p-4 text-center text-sm">{person._count?.primaryDeals || 0}</td>
+                      <td className="p-4 text-right text-sm font-medium text-gray-900">{person._count?.events || 0}</td>
+                      <td className="p-4 text-right text-sm font-medium text-gray-900">{person._count?.primaryDeals || 0}</td>
                       <td className="p-4">
                         <div className="flex gap-2 justify-end">
-                          <Link href={`/people/${person.id}`}>
-                            <Button variant="outline" size="sm">View</Button>
-                          </Link>
                           <Link href={`/events/new?personId=${person.id}`}>
-                            <Button size="sm">+ Activity</Button>
+                            <Button size="sm" variant="outline">+ Activity</Button>
                           </Link>
                         </div>
                       </td>
