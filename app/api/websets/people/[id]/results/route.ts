@@ -104,42 +104,135 @@ export async function GET(
     // Import results as Person records
     const createdPeople = [];
     let skippedDuplicates = 0;
-    let skippedNoCompany = 0;
+    let skippedNoLinkedIn = 0;
     const criteria = webset.criteria as any;
 
-    for (const item of items) {
-      try {
-        // Extract person data from enrichment results
-        const enrichments = (item as any).enrichments || {};
+    // Log initial stats
+    logInfo('Starting to process people webset items', {
+      websetId: webset.id,
+      totalItems: items.length,
+      tenantId,
+    });
 
-        const personData = {
-          firstName: enrichments['Full name']?.split(' ')[0] || 'Unknown',
-          lastName: enrichments['Full name']?.split(' ').slice(1).join(' ') || '',
-          email: enrichments['Professional email address'] || enrichments['Email address'] || null,
-          phone: enrichments['Phone number'] || null,
-          title: enrichments['Current job title'] || null,
-          linkedin: enrichments['LinkedIn profile URL'] || null,
-          companyName: enrichments['Current company name'] || (criteria.companyNames?.[0]) || null,
+    for (let index = 0; index < items.length; index++) {
+      const item = items[index];
+      try {
+        // Extract person data from Exa response
+        // Exa returns enrichments as an array of objects with result arrays
+        const properties = (item as any).properties || {};
+        const personInfo = properties.person || {};
+        const enrichments = (item as any).enrichments || [];
+
+        // Log detailed info for first 3 items to understand structure
+        if (index < 3) {
+          logInfo('Sample people webset item structure', {
+            index: index + 1,
+            hasProperties: !!properties,
+            propertiesKeys: Object.keys(properties),
+            hasPersonInfo: !!personInfo,
+            personInfoKeys: personInfo ? Object.keys(personInfo) : [],
+            enrichmentCount: enrichments.length,
+            enrichmentFormats: enrichments.map((e: any) => e.format),
+            enrichmentDescriptions: enrichments.map((e: any) => ({
+              format: e.format,
+              hasResult: !!e.result?.[0],
+              resultPreview: e.result?.[0]?.substring(0, 80),
+            })),
+          });
+        }
+
+        // Helper to get enrichment result by matching common patterns in the result
+        const getEnrichmentByFormat = (formatType: string): string | null => {
+          const enrichment = enrichments.find((e: any) => e.format === formatType);
+          return enrichment?.result?.[0] || null;
         };
 
-        // Skip if no email (critical for deduplication)
-        if (!personData.email) {
-          logWarning('Skipping person without email', personData);
-          skippedNoCompany++;
+        // Helper to find LinkedIn URL from enrichments (check URL format and verify it's LinkedIn)
+        const getLinkedInUrl = (): string | null => {
+          // First check personInfo
+          if (personInfo.linkedin) {
+            return personInfo.linkedin;
+          }
+          
+          // Check URL format enrichments for LinkedIn URLs
+          const urlEnrichment = enrichments.find((e: any) => {
+            if (e.format === 'url' && e.result?.[0]) {
+              const url = e.result[0].toLowerCase();
+              return url.includes('linkedin.com');
+            }
+            return false;
+          });
+          
+          return urlEnrichment?.result?.[0] || null;
+        };
+
+        // Get enrichment values - Exa enrichments are in array format
+        const fullName = getEnrichmentByFormat('text') || personInfo.name || 'Unknown';
+        const nameParts = fullName.split(' ');
+        
+        // Extract company name - can be in enrichments (text format) or personInfo.company (object or string)
+        // From logs: enrichments structure is [name, location, email, phone, url, company, title, ...]
+        // Company is typically at enrichments[5] when filtered by text format it's at index 2
+        const textEnrichments = enrichments.filter((e: any) => e.format === 'text');
+        const companyFromEnrichment = textEnrichments.length >= 3 
+          ? textEnrichments[2]?.result?.[0] // Index 2 is company (0=name, 1=location, 2=company)
+          : null;
+        
+        // Handle personInfo.company - could be object or string
+        // From logs: personInfo.company appears to be an object with { name, location } structure
+        let companyFromPersonInfo: string | null = null;
+        if (personInfo.company) {
+          if (typeof personInfo.company === 'string') {
+            companyFromPersonInfo = personInfo.company;
+          } else if (typeof personInfo.company === 'object') {
+            // Handle both { name: "..." } and potentially nested structures
+            companyFromPersonInfo = personInfo.company.name || 
+                                   (personInfo.company as any).companyName ||
+                                   null;
+          }
+        }
+        
+        const personData = {
+          firstName: nameParts[0] || 'Unknown',
+          lastName: nameParts.slice(1).join(' ') || '',
+          email: getEnrichmentByFormat('email') || personInfo.email || null,
+          phone: enrichments.find((e: any) => e.format === 'phone_number' || e.format === 'text' && e.result?.[0]?.includes('+'))?.result?.[0] || null,
+          title: personInfo.position || personInfo.title || enrichments.find((e: any) => e.result?.[0]?.toLowerCase()?.includes('engineer') || e.result?.[0]?.toLowerCase()?.includes('manager'))?.result?.[0] || null,
+          linkedin: getLinkedInUrl(),
+          companyName: companyFromPersonInfo || companyFromEnrichment || (criteria.companyNames?.[0]) || null,
+        };
+
+        // Skip if no LinkedIn URL (critical for deduplication)
+        if (!personData.linkedin) {
+          logWarning('Skipping person without LinkedIn URL', {
+            personName: `${personData.firstName} ${personData.lastName}`,
+            hasEmail: !!personData.email,
+            hasPhone: !!personData.phone,
+            hasTitle: !!personData.title,
+            enrichmentCount: enrichments.length,
+            enrichmentFormats: enrichments.map((e: any) => e.format),
+            urlEnrichments: enrichments
+              .filter((e: any) => e.format === 'url')
+              .map((e: any) => e.result?.[0]),
+            personInfoKeys: personInfo ? Object.keys(personInfo) : [],
+            itemIndex: index + 1,
+            totalItems: items.length,
+          });
+          skippedNoLinkedIn++;
           continue;
         }
 
-        // Check for duplicate by email
+        // Check for duplicate by LinkedIn URL
         const existingPerson = await prisma.person.findFirst({
           where: {
-            email: personData.email,
+            linkedin: personData.linkedin,
             tenantId,
           },
         });
 
         if (existingPerson) {
           logInfo('Skipping duplicate person from webset', {
-            email: personData.email,
+            linkedin: personData.linkedin,
             name: `${personData.firstName} ${personData.lastName}`,
           });
           skippedDuplicates++;
@@ -149,13 +242,23 @@ export async function GET(
         // Find or create company for this person
         let company = null;
 
+        // Ensure companyName is a string (handle edge cases where it might still be an object)
+        let companyNameString: string | null = null;
         if (personData.companyName) {
+          if (typeof personData.companyName === 'string') {
+            companyNameString = personData.companyName;
+          } else if (typeof personData.companyName === 'object' && personData.companyName.name) {
+            companyNameString = personData.companyName.name;
+          }
+        }
+
+        if (companyNameString) {
           // Try to find existing company
           company = await prisma.company.findFirst({
             where: {
               tenantId,
               name: {
-                contains: personData.companyName,
+                contains: companyNameString,
                 mode: 'insensitive',
               },
             },
@@ -166,7 +269,7 @@ export async function GET(
             company = await prisma.company.create({
               data: {
                 tenantId,
-                name: personData.companyName,
+                name: companyNameString,
                 status: 'Lead',
                 sourceType: 'exa_webset',
                 sourceQuery: webset.query,
@@ -174,7 +277,7 @@ export async function GET(
             });
 
             logInfo('Created company for person', {
-              companyName: personData.companyName,
+              companyName: companyNameString,
               companyId: company.id,
             });
           }
@@ -210,10 +313,21 @@ export async function GET(
         });
 
         createdPeople.push(person);
+        
+        // Log successful import for first few
+        if (createdPeople.length <= 3) {
+          logInfo('Successfully imported person from webset', {
+            personName: `${personData.firstName} ${personData.lastName}`,
+            linkedin: personData.linkedin,
+            company: personData.companyName,
+            itemIndex: index + 1,
+          });
+        }
       } catch (itemError) {
         logError('Error importing person from webset', itemError, {
           websetId: webset.id,
-          item: item,
+          itemIndex: index + 1,
+          itemPreview: JSON.stringify(item).substring(0, 200),
         });
         // Continue processing other items
       }
@@ -231,8 +345,10 @@ export async function GET(
       websetId: webset.id,
       imported: createdPeople.length,
       skippedDuplicates,
-      skippedNoEmail: skippedNoCompany,
-      total: items.length,
+      skippedNoLinkedIn,
+      skippedTotal: skippedDuplicates + skippedNoLinkedIn,
+      totalItems: items.length,
+      successRate: items.length > 0 ? `${((createdPeople.length / items.length) * 100).toFixed(1)}%` : '0%',
       tenantId,
     });
 
@@ -241,8 +357,10 @@ export async function GET(
       count: createdPeople.length,
       people: createdPeople,
       skippedDuplicates,
-      skippedNoEmail: skippedNoCompany,
+      skippedNoLinkedIn,
+      skippedTotal: skippedDuplicates + skippedNoLinkedIn,
       totalResults: items.length,
+      successRate: items.length > 0 ? `${((createdPeople.length / items.length) * 100).toFixed(1)}%` : '0%',
     });
   } catch (error) {
     logError('Error fetching people webset results', error);

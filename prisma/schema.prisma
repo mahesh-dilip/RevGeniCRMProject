@@ -8,31 +8,18 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ============================================
-// MULTI-TENANCY & USER MANAGEMENT
-// ============================================
-
-enum UserRole {
-  OWNER    // Full access + user management + billing
-  ADMIN    // Full access except user management
-  MANAGER  // Can use AI, bulk ops, delete records
-  USER     // Can create/edit, no delete or expensive ops
-  READONLY // View only
-}
-
 model Tenant {
-  id        String   @id @default(cuid())
+  id        String          @id @default(cuid())
   name      String
-  domain    String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  users     User[]
+  domain    String?         @unique
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
   companies Company[]
   deals     Deal[]
-  people    Person[]
-  events    Event[]
   sequences EmailSequence[]
+  events    Event[]
+  people    Person[]
+  users     User[]
 }
 
 model User {
@@ -42,61 +29,45 @@ model User {
   firstName String?
   lastName  String?
   role      UserRole @default(USER)
-
   tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
 
   @@index([clerkId])
   @@index([tenantId])
   @@index([email])
 }
 
-// ============================================
-// CORE CRM ENTITIES
-// ============================================
-
 model Company {
-  id          String   @id @default(cuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-
-  name        String
-  website     String?
-  industry    String?
-  size        String?
-  geography   String?
-  status      String   @default("Lead")
-  description String?  @db.Text
-  foundedYear Int?
-
-  sourceType  String?
-  sourceQuery String?
-  confidence  Float?
-
-  // Webset relation (for AI-discovered companies)
-  websetId    String?
-  webset      Webset?  @relation(fields: [websetId], references: [id])
-
-  // Lifecycle & Lead Management
-  lifecycleStage String   @default("lead")
-  leadSource     String?
-  leadScore      Int?
-  lastEngaged    DateTime?
-
-  // Engagement tracking
-  emailOpens     Int      @default(0)
-  emailClicks    Int      @default(0)
-  websiteVisits  Int      @default(0)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  people              Person[]
+  id                  String               @id @default(cuid())
+  tenantId            String
+  name                String
+  website             String?
+  industry            String?
+  size                String?
+  geography           String?
+  status              String               @default("Lead")
+  description         String?
+  foundedYear         Int?
+  sourceType          String?
+  sourceQuery         String?
+  confidence          Float?
+  lifecycleStage      String               @default("lead")
+  leadSource          String?
+  leadScore           Int?
+  lastEngaged         DateTime?
+  emailOpens          Int                  @default(0)
+  emailClicks         Int                  @default(0)
+  websiteVisits       Int                  @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  websetId            String?
+  tenant              Tenant               @relation(fields: [tenantId], references: [id])
+  webset              Webset?              @relation(fields: [websetId], references: [id])
   deals               Deal[]
   events              Event[]
+  people              Person[]
   sequenceEnrollments SequenceEnrollment[]
 
   @@index([tenantId])
@@ -107,29 +78,23 @@ model Company {
 }
 
 model Person {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-
-  firstName String
-  lastName  String
-  email     String?
-  phone     String?
-  title     String?
-  linkedin  String?
-
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  // Webset relation (for AI-discovered people)
-  websetId  String?
-  webset    Webset?  @relation(fields: [websetId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id           String   @id @default(cuid())
+  tenantId     String
+  firstName    String
+  lastName     String
+  email        String?
+  phone        String?
+  title        String?
+  linkedin     String?
+  companyId    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  websetId     String?
+  primaryDeals Deal[]   @relation("PrimaryContact")
   events       Event[]
-  primaryDeals Deal[]  @relation("PrimaryContact")
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  webset       Webset?  @relation(fields: [websetId], references: [id])
 
   @@index([tenantId])
   @@index([companyId])
@@ -138,31 +103,25 @@ model Person {
 }
 
 model Deal {
-  id          String    @id @default(cuid())
-  tenantId    String
-  tenant      Tenant    @relation(fields: [tenantId], references: [id])
-
-  title       String
-  value       Float?
-  stage       String    @default("Prospecting")
-  probability Int?
-  closeDate   DateTime?
-  description String?   @db.Text
-
-  nextAction     String?
-  lostReason     String?
-  stageChangedAt DateTime?
-
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
+  id               String    @id @default(cuid())
+  tenantId         String
+  title            String
+  value            Float?
+  stage            String    @default("Prospecting")
+  probability      Int?
+  closeDate        DateTime?
+  description      String?
+  nextAction       String?
+  lostReason       String?
+  stageChangedAt   DateTime?
+  companyId        String
   primaryContactId String?
-  primaryContact   Person? @relation("PrimaryContact", fields: [primaryContactId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  events Event[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  company          Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  primaryContact   Person?   @relation("PrimaryContact", fields: [primaryContactId], references: [id])
+  tenant           Tenant    @relation(fields: [tenantId], references: [id])
+  events           Event[]
 
   @@index([tenantId])
   @@index([companyId])
@@ -173,32 +132,25 @@ model Deal {
 model Event {
   id          String    @id @default(cuid())
   tenantId    String
-  tenant      Tenant    @relation(fields: [tenantId], references: [id])
-
   type        String
   title       String
-  description String?   @db.Text
+  description String?
   dueDate     DateTime?
   completed   Boolean   @default(false)
-
   source      String    @default("manual")
   priority    String?
   outcome     String?
-
   emailStatus String?
   sequenceId  String?
-
-  companyId String?
-  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  personId String?
-  person   Person? @relation(fields: [personId], references: [id], onDelete: Cascade)
-
-  dealId String?
-  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  companyId   String?
+  personId    String?
+  dealId      String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  company     Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  deal        Deal?     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  person      Person?   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
   @@index([companyId])
@@ -210,66 +162,52 @@ model Event {
   @@index([completed])
 }
 
-// ============================================
-// EMAIL SEQUENCES
-// ============================================
-
 model EmailSequence {
-  id          String   @id @default(cuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-
-  name        String
-  description String?
-  active      Boolean  @default(true)
-
-  pauseOnDealCreation Boolean  @default(true)
+  id                  String               @id @default(cuid())
+  tenantId            String
+  name                String
+  description         String?
+  active              Boolean              @default(true)
+  pauseOnDealCreation Boolean              @default(true)
   pauseOnDealStages   String[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  steps       EmailSequenceStep[]
-  enrollments SequenceEnrollment[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  tenant              Tenant               @relation(fields: [tenantId], references: [id])
+  steps               EmailSequenceStep[]
+  enrollments         SequenceEnrollment[]
 
   @@index([tenantId])
 }
 
 model EmailSequenceStep {
-  id         String @id @default(cuid())
+  id         String        @id @default(cuid())
   sequenceId String
+  stepOrder  Int
+  delayDays  Int
+  subject    String
+  body       String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
   sequence   EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
-
-  stepOrder Int
-  delayDays Int
-  subject   String
-  body      String @db.Text
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@unique([sequenceId, stepOrder])
   @@index([sequenceId])
 }
 
 model SequenceEnrollment {
-  id         String @id @default(cuid())
-  sequenceId String
-  sequence   EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
-
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  status      String    @default("active")
-  pauseReason String?
-  currentStep Int       @default(0)
-  enrolledAt  DateTime  @default(now())
-  completedAt DateTime?
-
+  id              String           @id @default(cuid())
+  sequenceId      String
+  companyId       String
+  status          String           @default("active")
+  pauseReason     String?
+  currentStep     Int              @default(0)
+  enrolledAt      DateTime         @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   scheduledEmails ScheduledEmail[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sequence        EmailSequence    @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
 
   @@index([sequenceId])
   @@index([companyId])
@@ -277,51 +215,51 @@ model SequenceEnrollment {
 }
 
 model ScheduledEmail {
-  id           String @id @default(cuid())
-  enrollmentId String
-  enrollment   SequenceEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-
-  stepOrder    Int
-  subject      String
-  body         String   @db.Text
-  scheduledFor DateTime
-  status       String   @default("scheduled")
-  sentAt       DateTime?
-
+  id            String             @id @default(cuid())
+  enrollmentId  String
+  stepOrder     Int
+  subject       String
+  body          String
+  scheduledFor  DateTime
+  status        String             @default("scheduled")
+  sentAt        DateTime?
   emailProvider String?
   externalId    String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  enrollment    SequenceEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
 
   @@index([enrollmentId])
   @@index([status])
   @@index([scheduledFor])
 }
 
-// ============================================
-// EXA WEBSETS (AI DISCOVERY)
-// ============================================
-
 model Webset {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   tenantId    String
-  exaId       String   @unique
+  exaId       String    @unique
   type        String
   status      String
   query       String
   criteria    Json
-  resultCount Int      @default(0)
+  resultCount Int       @default(0)
   createdBy   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   completedAt DateTime?
-
-  companies Company[]
-  people    Person[]
+  companies   Company[]
+  people      Person[]
 
   @@index([tenantId])
   @@index([status])
   @@index([type])
   @@index([createdBy])
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MANAGER
+  USER
+  READONLY
 }

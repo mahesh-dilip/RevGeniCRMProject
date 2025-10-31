@@ -104,19 +104,37 @@ export async function GET(
 
     for (const item of items) {
       try {
-        // Extract company data from enrichment results
-        const enrichments = (item as any).enrichments || {};
+        // Extract company data from Exa response
+        // Exa provides data in two places: properties.company (structured) and enrichments (array)
+        const properties = (item as any).properties || {};
+        const companyInfo = properties.company || {};
+        const enrichments = (item as any).enrichments || [];
 
+        logInfo('Processing webset item', {
+          hasProperties: !!properties,
+          hasCompanyInfo: !!companyInfo.name,
+          enrichmentCount: enrichments.length,
+        });
+
+        // Helper to get enrichment result by checking the format or result content
+        const getEnrichmentValue = (formatType?: string, index: number = 0): string | null => {
+          const enrichment = formatType 
+            ? enrichments.find((e: any) => e.format === formatType)
+            : enrichments[index];
+          return enrichment?.result?.[0] || null;
+        };
+
+        // Extract company data - prefer properties.company, fallback to enrichments
         const companyData = {
-          name: enrichments['Company name'] || enrichments['Official company website URL'] || 'Unknown',
-          website: enrichments['Official company website URL'] || null,
-          industry: enrichments['Primary industry and business model'] || (webset.criteria as any).industry,
-          size: enrichments['Number of employees'] || (webset.criteria as any).size,
-          geography: enrichments['Company headquarters location with city and country'] || (webset.criteria as any).geography,
-          description: enrichments['Company description and what they do'] || null,
-          foundedYear: enrichments['Year the company was founded']
-            ? parseInt(enrichments['Year the company was founded'])
-            : null,
+          name: companyInfo.name || getEnrichmentValue('text', 0) || properties.url || 'Unknown',
+          website: getEnrichmentValue('url') || properties.url || null,
+          industry: companyInfo.industry || (webset.criteria as any).industry || null,
+          size: companyInfo.employees 
+            ? `${companyInfo.employees} employees` 
+            : (getEnrichmentValue('number') ? `${getEnrichmentValue('number')} employees` : (webset.criteria as any).size),
+          geography: companyInfo.location || (webset.criteria as any).geography || null,
+          description: companyInfo.about || properties.description || null,
+          foundedYear: companyInfo.founded || null,
         };
 
         // Check for duplicates

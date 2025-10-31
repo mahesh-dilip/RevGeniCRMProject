@@ -48,7 +48,7 @@ export default function AIPeopleFinderPage() {
     error: resultsError,
   } = usePeopleWebsetResults(
     websetId,
-    step === 'results' && statusData?.status === 'completed'
+    statusData?.status === 'completed' // Fetch when completed, regardless of step
   );
 
   // Helper functions for array inputs
@@ -104,16 +104,21 @@ export default function AIPeopleFinderPage() {
     });
   };
 
-  // Auto-advance to results step when webset is completed
+  // Auto-advance to results step when webset is completed AND results data is available
   useEffect(() => {
-    if (statusData?.status === 'completed' && step === 'processing') {
-      setStep('results');
-      toast.success('People discovery completed!');
-    } else if (statusData?.status === 'failed') {
+    if (statusData?.status === 'failed') {
       toast.error('Webset processing failed. Please try again.');
       setStep('search');
+    } else if (
+      statusData?.status === 'completed' &&
+      step === 'processing' &&
+      resultsData &&
+      !isLoadingResults
+    ) {
+      setStep('results');
+      toast.success('People discovery completed!');
     }
-  }, [statusData?.status, step]);
+  }, [statusData?.status, step, resultsData, isLoadingResults]);
 
   // Show error messages
   useEffect(() => {
@@ -216,10 +221,28 @@ export default function AIPeopleFinderPage() {
 
   // Results step - show discovered people
   if (step === 'results') {
-    const people = resultsData?.people || [];
-    const skipped = resultsData?.skippedDuplicates || 0;
-    const skippedNoEmail = resultsData?.skippedNoEmail || 0;
-    const total = resultsData?.totalResults || 0;
+    // Show loading state if results aren't ready yet
+    if (isLoadingResults || !resultsData) {
+      return (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold">⏳ Loading Results...</h1>
+              <p className="text-gray-600">Fetching and importing contacts...</p>
+            </div>
+          </div>
+          <Card className="p-8 text-center">
+            <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-600">Processing discovered contacts...</p>
+          </Card>
+        </div>
+      );
+    }
+
+    const people = resultsData.people || [];
+    const skipped = resultsData.skippedDuplicates || 0;
+    const skippedNoLinkedIn = resultsData.skippedNoLinkedIn || 0;
+    const total = resultsData.totalResults || 0;
 
     return (
       <div className="space-y-6">
@@ -235,7 +258,7 @@ export default function AIPeopleFinderPage() {
           </Button>
         </div>
 
-        {(skipped > 0 || skippedNoEmail > 0) && (
+        {(skipped > 0 || skippedNoLinkedIn > 0) && (
           <Card className="p-4 bg-yellow-50 border-yellow-200">
             <p className="text-sm">
               {skipped > 0 && (
@@ -244,11 +267,11 @@ export default function AIPeopleFinderPage() {
                   already exist in your CRM
                 </span>
               )}
-              {skipped > 0 && skippedNoEmail > 0 && <br />}
-              {skippedNoEmail > 0 && (
+              {skipped > 0 && skippedNoLinkedIn > 0 && <br />}
+              {skippedNoLinkedIn > 0 && (
                 <span>
-                  ⚠️ Skipped {skippedNoEmail} {skippedNoEmail === 1 ? 'contact' : 'contacts'}{' '}
-                  without email addresses
+                  ⚠️ Skipped {skippedNoLinkedIn} {skippedNoLinkedIn === 1 ? 'contact' : 'contacts'}{' '}
+                  without LinkedIn URLs
                 </span>
               )}
             </p>
@@ -259,7 +282,7 @@ export default function AIPeopleFinderPage() {
           <Card className="p-8 text-center">
             <p className="text-gray-600 mb-4">
               No new contacts were found. All discovered contacts either already exist in your CRM or
-              were missing required information (email).
+              were missing required information (LinkedIn URL).
             </p>
             <Button onClick={handleBackToSearch}>Try Different Criteria</Button>
           </Card>

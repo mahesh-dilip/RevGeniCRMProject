@@ -48,7 +48,7 @@ export default function AILeadFinderPage() {
     error: resultsError,
   } = useCompanyWebsetResults(
     websetId,
-    step === 'results' && statusData?.status === 'completed'
+    statusData?.status === 'completed' // Fetch when completed, regardless of step
   );
 
   // Handle webset creation
@@ -67,16 +67,21 @@ export default function AILeadFinderPage() {
     });
   };
 
-  // Auto-advance to results step when webset is completed
+  // Auto-advance to results step when webset is completed AND results data is available
   useEffect(() => {
-    if (statusData?.status === 'completed' && step === 'processing') {
-      setStep('results');
-      toast.success('Company discovery completed!');
-    } else if (statusData?.status === 'failed') {
+    if (statusData?.status === 'failed') {
       toast.error('Webset processing failed. Please try again.');
       setStep('search');
+    } else if (
+      statusData?.status === 'completed' &&
+      step === 'processing' &&
+      resultsData &&
+      !isLoadingResults
+    ) {
+      setStep('results');
+      toast.success('Company discovery completed!');
     }
-  }, [statusData?.status, step]);
+  }, [statusData?.status, step, resultsData, isLoadingResults]);
 
   // Show error messages
   useEffect(() => {
@@ -175,9 +180,27 @@ export default function AILeadFinderPage() {
 
   // Results step - show discovered companies
   if (step === 'results') {
-    const companies = resultsData?.companies || [];
-    const skipped = resultsData?.skippedDuplicates || 0;
-    const total = resultsData?.totalResults || 0;
+    // Show loading state if results aren't ready yet
+    if (isLoadingResults || !resultsData) {
+      return (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold">⏳ Loading Results...</h1>
+              <p className="text-gray-600">Fetching and importing companies...</p>
+            </div>
+          </div>
+          <Card className="p-8 text-center">
+            <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-600">Processing discovered companies...</p>
+          </Card>
+        </div>
+      );
+    }
+
+    const companies = resultsData.companies || [];
+    const skipped = resultsData.skippedDuplicates || 0;
+    const total = resultsData.totalResults || 0;
 
     return (
       <div className="space-y-6">

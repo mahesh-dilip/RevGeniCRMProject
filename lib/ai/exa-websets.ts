@@ -26,6 +26,49 @@ export interface WebsetResult {
   itemCount?: number;
 }
 
+export interface ExaEnrichment {
+  object: 'enrichment_result';
+  status: string;
+  format: string;
+  result: any[];
+  reasoning?: string;
+  references?: any[];
+  enrichmentId: string;
+}
+
+export interface ExaWebsetItem {
+  id: string;
+  object: 'webset_item';
+  source: string;
+  sourceId: string;
+  websetId: string;
+  properties: {
+    type?: string;
+    url?: string;
+    description?: string;
+    content?: string;
+    company?: {
+      name?: string;
+      location?: string;
+      employees?: number;
+      industry?: string;
+      about?: string;
+      logoUrl?: string;
+    };
+    person?: {
+      name?: string;
+      email?: string;
+      title?: string;
+      company?: string;
+      linkedin?: string;
+    };
+  };
+  enrichments: ExaEnrichment[];
+  evaluations?: any[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export class ExaWebsetsService {
   private exa: Exa;
 
@@ -218,8 +261,12 @@ export class ExaWebsetsService {
 
   /**
    * Wait for a webset to complete and get all results
+   * Returns properly typed webset items with enrichments
    */
-  async getWebsetResults(websetId: string, timeout: number = 600000) {
+  async getWebsetResults(websetId: string, timeout: number = 600000): Promise<{
+    webset: any;
+    items: ExaWebsetItem[];
+  }> {
     logInfo('Waiting for webset to complete', { websetId });
 
     try {
@@ -231,7 +278,7 @@ export class ExaWebsetsService {
         }
       });
 
-      const items = await this.exa.websets.items.getAll(websetId);
+      const items = await this.exa.websets.items.getAll(websetId) as ExaWebsetItem[];
 
       logInfo('Webset results retrieved', { websetId, itemCount: items.length });
 
