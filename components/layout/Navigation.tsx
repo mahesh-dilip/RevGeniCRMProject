@@ -9,6 +9,7 @@ import { UserButton } from '@clerk/nextjs';
 const navItems = [
   { name: 'Dashboard', href: '/' },
   { name: 'AI Lead Finder', href: '/ai-lead-finder' },
+  { name: 'AI People Finder', href: '/ai-people-finder' },
   { name: 'Companies', href: '/companies' },
   { name: 'People', href: '/people' },
   { name: 'Deals', href: '/deals' },

@@ -76,6 +76,10 @@ model Company {
   sourceQuery String?
   confidence  Float?
 
+  // Webset relation (for AI-discovered companies)
+  websetId    String?
+  webset      Webset?  @relation(fields: [websetId], references: [id])
+
   // Lifecycle & Lead Management
   lifecycleStage String   @default("lead")
   leadSource     String?
@@ -99,6 +103,7 @@ model Company {
   @@index([status])
   @@index([sourceType])
   @@index([website])
+  @@index([websetId])
 }
 
 model Person {
@@ -116,6 +121,10 @@ model Person {
   companyId String
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  // Webset relation (for AI-discovered people)
+  websetId  String?
+  webset    Webset?  @relation(fields: [websetId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -125,6 +134,7 @@ model Person {
   @@index([tenantId])
   @@index([companyId])
   @@index([email])
+  @@index([websetId])
 }
 
 model Deal {
@@ -287,4 +297,31 @@ model ScheduledEmail {
   @@index([enrollmentId])
   @@index([status])
   @@index([scheduledFor])
+}
+
+// ============================================
+// EXA WEBSETS (AI DISCOVERY)
+// ============================================
+
+model Webset {
+  id          String   @id @default(cuid())
+  tenantId    String
+  exaId       String   @unique
+  type        String
+  status      String
+  query       String
+  criteria    Json
+  resultCount Int      @default(0)
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime?
+
+  companies Company[]
+  people    Person[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([type])
+  @@index([createdBy])
 }

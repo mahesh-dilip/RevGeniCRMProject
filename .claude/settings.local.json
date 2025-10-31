@@ -16,7 +16,10 @@
       "Bash(./test-rate-limit.sh:*)",
       "Bash(find:*)",
       "Bash(lsof:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node test-exa-websets.js:*)",
+      "Bash(xargs kill -9)"
     ],
     "deny": [],
     "ask": []
