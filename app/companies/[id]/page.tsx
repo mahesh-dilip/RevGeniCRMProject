@@ -263,6 +263,11 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
                       👤 Add Person
                     </Button>
                   </Link>
+                  <Link href={`/ai-people-finder?company=${encodeURIComponent(company.name)}`}>
+                    <Button variant="outline" size="sm" className="w-full">
+                      🤖 Find People at {company.name}
+                    </Button>
+                  </Link>
                   <Link href={`/deals/new?companyId=${company.id}`}>
                     <Button variant="outline" size="sm" className="w-full">
                       💼 Create Deal

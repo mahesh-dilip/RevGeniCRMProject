@@ -1,25 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import {
   usePeopleWebsetWorkflow,
   usePeopleWebsetStatus,
-  usePeopleWebsetResults,
+  usePeopleWebsetPreview,
+  usePeopleWebsetImport,
 } from '@/lib/hooks/use-websets';
 
-type Step = 'search' | 'processing' | 'results';
+type Step = 'search' | 'processing' | 'review' | 'importing' | 'results';
 
 export default function AIPeopleFinderPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>('search');
   const [websetId, setWebsetId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const [criteria, setCriteria] = useState({
     companyNames: [''],
@@ -29,6 +33,18 @@ export default function AIPeopleFinderPage() {
     industries: [''],
     maxResults: 10,
   });
+
+  // Pre-fill company name from URL parameter
+  useEffect(() => {
+    const companyParam = searchParams.get('company');
+    if (companyParam) {
+      setCriteria(prev => ({
+        ...prev,
+        companyNames: [companyParam]
+      }));
+      toast.info(`Pre-filled company: ${companyParam}`);
+    }
+  }, [searchParams]);
 
   // React Query hooks
   const { create, isCreating, createdWebset, createError } =
@@ -43,13 +59,20 @@ export default function AIPeopleFinderPage() {
   });
 
   const {
-    data: resultsData,
-    isLoading: isLoadingResults,
-    error: resultsError,
-  } = usePeopleWebsetResults(
+    data: previewData,
+    isLoading: isLoadingPreview,
+    error: previewError,
+  } = usePeopleWebsetPreview(
     websetId,
-    statusData?.status === 'completed' // Fetch when completed, regardless of step
+    statusData?.status === 'completed' && step === 'processing'
   );
+
+  const {
+    mutate: importSelected,
+    isPending: isImporting,
+    data: importResults,
+    error: importError,
+  } = usePeopleWebsetImport();
 
   // Helper functions for array inputs
   const handleArrayInput = (field: 'companyNames' | 'jobTitles' | 'seniority' | 'industries', index: number, value: string) => {
@@ -104,7 +127,7 @@ export default function AIPeopleFinderPage() {
     });
   };
 
-  // Auto-advance to results step when webset is completed AND results data is available
+  // Auto-advance to review step when preview data is available
   useEffect(() => {
     if (statusData?.status === 'failed') {
       toast.error('Webset processing failed. Please try again.');
@@ -112,13 +135,24 @@ export default function AIPeopleFinderPage() {
     } else if (
       statusData?.status === 'completed' &&
       step === 'processing' &&
-      resultsData &&
-      !isLoadingResults
+      previewData &&
+      !isLoadingPreview
     ) {
-      setStep('results');
-      toast.success('People discovery completed!');
+      setStep('review');
+      // Auto-select all people by default
+      if (previewData.people) {
+        setSelectedIds(previewData.people.map((p: any) => p.exaId));
+      }
     }
-  }, [statusData?.status, step, resultsData, isLoadingResults]);
+  }, [statusData?.status, step, previewData, isLoadingPreview]);
+
+  // Handle import completion
+  useEffect(() => {
+    if (importResults && step === 'importing') {
+      setStep('results');
+      toast.success(`Successfully imported ${importResults.count} contacts!`);
+    }
+  }, [importResults, step]);
 
   // Show error messages
   useEffect(() => {
@@ -128,18 +162,51 @@ export default function AIPeopleFinderPage() {
     if (statusError) {
       toast.error('Failed to check webset status');
     }
-    if (resultsError) {
-      toast.error('Failed to fetch results');
+    if (previewError) {
+      toast.error('Failed to fetch preview');
     }
-  }, [createError, statusError, resultsError]);
+    if (importError) {
+      toast.error(importError.message || 'Failed to import contacts');
+      setStep('review'); // Go back to review on error
+    }
+  }, [createError, statusError, previewError, importError]);
 
   const handleBackToSearch = () => {
     setStep('search');
     setWebsetId(null);
+    setSelectedIds([]);
   };
 
   const handleViewPeople = () => {
     router.push('/people');
+  };
+
+  const handleTogglePerson = (exaId: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(exaId)
+        ? prev.filter((id) => id !== exaId)
+        : [...prev, exaId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (previewData?.people) {
+      setSelectedIds(previewData.people.map((p: any) => p.exaId));
+    }
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedIds([]);
+  };
+
+  const handleImportSelected = () => {
+    if (!websetId || selectedIds.length === 0) {
+      toast.error('Please select at least one contact to import');
+      return;
+    }
+
+    setStep('importing');
+    importSelected({ websetId, selectedIds });
   };
 
   // Processing step - show status and polling
@@ -211,24 +278,22 @@ export default function AIPeopleFinderPage() {
           <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
             <li>Our AI is searching professional networks for matching contacts</li>
             <li>Enriching contact data with email, phone, LinkedIn, etc.</li>
-            <li>Checking for duplicates against your existing CRM contacts</li>
-            <li>Results will be automatically imported when ready</li>
+            <li>You'll be able to review and select which contacts to import</li>
           </ul>
         </Card>
       </div>
     );
   }
 
-  // Results step - show discovered people
-  if (step === 'results') {
-    // Show loading state if results aren't ready yet
-    if (isLoadingResults || !resultsData) {
+  // Review step - show people with checkboxes for selection
+  if (step === 'review') {
+    if (isLoadingPreview || !previewData) {
       return (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold">⏳ Loading Results...</h1>
-              <p className="text-gray-600">Fetching and importing contacts...</p>
+              <p className="text-gray-600">Fetching discovered contacts...</p>
             </div>
           </div>
           <Card className="p-8 text-center">
@@ -239,18 +304,175 @@ export default function AIPeopleFinderPage() {
       );
     }
 
-    const people = resultsData.people || [];
-    const skipped = resultsData.skippedDuplicates || 0;
-    const skippedNoLinkedIn = resultsData.skippedNoLinkedIn || 0;
-    const total = resultsData.totalResults || 0;
+    const people = previewData.people || [];
 
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">✅ Discovery Complete!</h1>
+            <h1 className="text-3xl font-bold">📋 Review Results</h1>
             <p className="text-gray-600">
-              Found {people.length} contacts and added them to your CRM
+              Found {people.length} contacts. Select which ones to import to your CRM.
+            </p>
+          </div>
+          <Button variant="outline" onClick={handleBackToSearch}>
+            ← New Search
+          </Button>
+        </div>
+
+        {people.length === 0 ? (
+          <Card className="p-8 text-center">
+            <p className="text-gray-600 mb-4">
+              No contacts were found matching your criteria.
+            </p>
+            <Button onClick={handleBackToSearch}>Try Different Criteria</Button>
+          </Card>
+        ) : (
+          <>
+            <Card className="p-4 bg-blue-50 border-blue-200">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium">
+                    {selectedIds.length} of {people.length} contacts selected
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                    Select All
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleDeselectAll}>
+                    Deselect All
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            <div className="grid grid-cols-1 gap-4">
+              {people.map((person: any) => (
+                <Card
+                  key={person.exaId}
+                  className={`p-4 cursor-pointer transition-colors ${
+                    selectedIds.includes(person.exaId)
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'hover:border-gray-400'
+                  }`}
+                  onClick={() => handleTogglePerson(person.exaId)}
+                >
+                  <div className="flex items-start gap-4">
+                    <Checkbox
+                      checked={selectedIds.includes(person.exaId)}
+                      onCheckedChange={() => handleTogglePerson(person.exaId)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">{person.name}</h3>
+                      {person.jobTitle && (
+                        <p className="text-sm text-gray-600 mt-1">{person.jobTitle}</p>
+                      )}
+
+                      <div className="flex flex-wrap gap-3 mt-3 text-sm">
+                        {person.companyName && <span>🏢 {person.companyName}</span>}
+                        {person.location && <span>📍 {person.location}</span>}
+                        {person.email && (
+                          <a
+                            href={`mailto:${person.email}`}
+                            className="text-blue-600 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            ✉️ {person.email}
+                          </a>
+                        )}
+                        {person.linkedinUrl && (
+                          <a
+                            href={person.linkedinUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            💼 LinkedIn
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            <div className="flex justify-between items-center sticky bottom-4 bg-white p-4 rounded-lg shadow-lg border">
+              <p className="text-sm font-medium">
+                {selectedIds.length} {selectedIds.length === 1 ? 'contact' : 'contacts'} selected
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleBackToSearch}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleImportSelected}
+                  disabled={selectedIds.length === 0}
+                  size="lg"
+                >
+                  Import {selectedIds.length > 0 && `(${selectedIds.length})`} to CRM →
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // Importing step - show progress
+  if (step === 'importing') {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">📥 Importing Contacts</h1>
+          <p className="text-gray-600 mt-1">Adding selected contacts to your CRM</p>
+        </div>
+
+        <Card className="p-8">
+          <div className="text-center space-y-6">
+            <div className="flex justify-center">
+              <div className="animate-spin h-16 w-16 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Importing {selectedIds.length} contacts...</h2>
+              <p className="text-gray-600">
+                Checking for duplicates and adding contacts to your CRM
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Results step - show import results
+  if (step === 'results') {
+    if (!importResults) {
+      return (
+        <div className="space-y-6">
+          <Card className="p-8 text-center">
+            <p className="text-gray-600">Loading results...</p>
+          </Card>
+        </div>
+      );
+    }
+
+    const imported = importResults.count || 0;
+    const skipped = importResults.skippedDuplicates || 0;
+    const skippedNoLinkedIn = importResults.skippedNoLinkedIn || 0;
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">✅ Import Complete!</h1>
+            <p className="text-gray-600">
+              Successfully imported {imported} {imported === 1 ? 'contact' : 'contacts'} to your CRM
             </p>
           </div>
           <Button variant="outline" onClick={handleBackToSearch}>
@@ -278,71 +500,24 @@ export default function AIPeopleFinderPage() {
           </Card>
         )}
 
-        {people.length === 0 ? (
-          <Card className="p-8 text-center">
-            <p className="text-gray-600 mb-4">
-              No new contacts were found. All discovered contacts either already exist in your CRM or
-              were missing required information (LinkedIn URL).
+        <Card className="p-6 text-center">
+          <div className="mb-4">
+            <div className="text-6xl mb-2">✅</div>
+            <h2 className="text-2xl font-bold mb-2">Import Successful!</h2>
+            <p className="text-gray-600">
+              {imported} new {imported === 1 ? 'contact has' : 'contacts have'} been added to your CRM
             </p>
-            <Button onClick={handleBackToSearch}>Try Different Criteria</Button>
-          </Card>
-        ) : (
-          <>
-            <div className="flex justify-end">
-              <Button onClick={handleViewPeople}>View All Contacts →</Button>
-            </div>
+          </div>
 
-            <div className="grid grid-cols-1 gap-4">
-              {people.map((person: any, index: number) => (
-                <Card key={person.id || index} className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg">
-                        {person.firstName} {person.lastName}
-                      </h3>
-                      {person.title && (
-                        <p className="text-sm text-gray-600 mt-1">{person.title}</p>
-                      )}
-
-                      <div className="flex flex-wrap gap-3 mt-3 text-sm">
-                        {person.company?.name && <span>🏢 {person.company.name}</span>}
-                        {person.email && (
-                          <a
-                            href={`mailto:${person.email}`}
-                            className="text-blue-600 hover:underline"
-                          >
-                            ✉️ {person.email}
-                          </a>
-                        )}
-                        {person.phone && <span>📞 {person.phone}</span>}
-                        {person.linkedin && (
-                          <a
-                            href={person.linkedin}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            💼 LinkedIn
-                          </a>
-                        )}
-                      </div>
-                    </div>
-
-                    <Badge variant="success" className="ml-4">
-                      New Contact
-                    </Badge>
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            <div className="flex justify-center">
-              <Button onClick={handleViewPeople} size="lg">
-                View All Contacts in CRM →
-              </Button>
-            </div>
-          </>
-        )}
+          <div className="flex gap-3 justify-center">
+            <Button onClick={handleViewPeople} size="lg">
+              View Contacts in CRM →
+            </Button>
+            <Button variant="outline" onClick={handleBackToSearch} size="lg">
+              Find More Contacts
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -551,8 +726,8 @@ export default function AIPeopleFinderPage() {
         <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside">
           <li>AI searches professional networks for contacts matching your criteria</li>
           <li>Contact data is automatically enriched with email, phone, LinkedIn</li>
-          <li>Results are imported directly into your CRM with company associations</li>
-          <li>Duplicate contacts are automatically detected and skipped</li>
+          <li>Review and select which contacts to import</li>
+          <li>Selected contacts are added to your CRM with duplicate detection</li>
         </ol>
       </Card>
 

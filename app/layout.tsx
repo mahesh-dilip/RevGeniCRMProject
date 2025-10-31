@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { Navigation } from '@/components/layout/Navigation';
-import { GlobalSearch } from '@/components/layout/GlobalSearch';
+import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
 import { Toaster } from 'sonner';
 import { ClerkProvider } from '@clerk/nextjs';
 import { ReactQueryProvider } from '@/lib/react-query-provider';
@@ -24,11 +23,9 @@ export default function RootLayout({
       <html lang="en">
         <body className={inter.className}>
           <ReactQueryProvider>
-            <Navigation />
-            <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            <ConditionalLayout>
               {children}
-            </main>
-            <GlobalSearch />
+            </ConditionalLayout>
             <Toaster richColors position="top-right" />
           </ReactQueryProvider>
         </body>

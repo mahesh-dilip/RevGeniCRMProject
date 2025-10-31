@@ -8,19 +8,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import {
   useCompanyWebsetWorkflow,
   useCompanyWebsetStatus,
-  useCompanyWebsetResults,
+  useCompanyWebsetPreview,
+  useCompanyWebsetImport,
 } from '@/lib/hooks/use-websets';
 
-type Step = 'search' | 'processing' | 'results';
+type Step = 'search' | 'processing' | 'review' | 'importing' | 'results';
 
 export default function AILeadFinderPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>('search');
   const [websetId, setWebsetId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const [criteria, setCriteria] = useState({
     industry: '',
@@ -43,13 +46,20 @@ export default function AILeadFinderPage() {
   });
 
   const {
-    data: resultsData,
-    isLoading: isLoadingResults,
-    error: resultsError,
-  } = useCompanyWebsetResults(
+    data: previewData,
+    isLoading: isLoadingPreview,
+    error: previewError,
+  } = useCompanyWebsetPreview(
     websetId,
-    statusData?.status === 'completed' // Fetch when completed, regardless of step
+    statusData?.status === 'completed' && step === 'processing'
   );
+
+  const {
+    mutate: importSelected,
+    isPending: isImporting,
+    data: importResults,
+    error: importError,
+  } = useCompanyWebsetImport();
 
   // Handle webset creation
   const handleSearch = async (e: React.FormEvent) => {
@@ -67,7 +77,7 @@ export default function AILeadFinderPage() {
     });
   };
 
-  // Auto-advance to results step when webset is completed AND results data is available
+  // Auto-advance to review step when preview data is available
   useEffect(() => {
     if (statusData?.status === 'failed') {
       toast.error('Webset processing failed. Please try again.');
@@ -75,13 +85,24 @@ export default function AILeadFinderPage() {
     } else if (
       statusData?.status === 'completed' &&
       step === 'processing' &&
-      resultsData &&
-      !isLoadingResults
+      previewData &&
+      !isLoadingPreview
     ) {
-      setStep('results');
-      toast.success('Company discovery completed!');
+      setStep('review');
+      // Auto-select all companies by default
+      if (previewData.companies) {
+        setSelectedIds(previewData.companies.map((c: any) => c.exaId));
+      }
     }
-  }, [statusData?.status, step, resultsData, isLoadingResults]);
+  }, [statusData?.status, step, previewData, isLoadingPreview]);
+
+  // Handle import completion
+  useEffect(() => {
+    if (importResults && step === 'importing') {
+      setStep('results');
+      toast.success(`Successfully imported ${importResults.count} companies!`);
+    }
+  }, [importResults, step]);
 
   // Show error messages
   useEffect(() => {
@@ -91,18 +112,51 @@ export default function AILeadFinderPage() {
     if (statusError) {
       toast.error('Failed to check webset status');
     }
-    if (resultsError) {
-      toast.error('Failed to fetch results');
+    if (previewError) {
+      toast.error('Failed to fetch preview');
     }
-  }, [createError, statusError, resultsError]);
+    if (importError) {
+      toast.error(importError.message || 'Failed to import companies');
+      setStep('review'); // Go back to review on error
+    }
+  }, [createError, statusError, previewError, importError]);
 
   const handleBackToSearch = () => {
     setStep('search');
     setWebsetId(null);
+    setSelectedIds([]);
   };
 
   const handleViewCompanies = () => {
     router.push('/companies');
+  };
+
+  const handleToggleCompany = (exaId: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(exaId)
+        ? prev.filter((id) => id !== exaId)
+        : [...prev, exaId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (previewData?.companies) {
+      setSelectedIds(previewData.companies.map((c: any) => c.exaId));
+    }
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedIds([]);
+  };
+
+  const handleImportSelected = () => {
+    if (!websetId || selectedIds.length === 0) {
+      toast.error('Please select at least one company to import');
+      return;
+    }
+
+    setStep('importing');
+    importSelected({ websetId, selectedIds });
   };
 
   // Processing step - show status and polling
@@ -170,24 +224,22 @@ export default function AILeadFinderPage() {
           <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
             <li>Our AI is searching the web for companies matching your criteria</li>
             <li>Enriching company data with details like employee count, website, etc.</li>
-            <li>Checking for duplicates against your existing CRM data</li>
-            <li>Results will be automatically imported when ready</li>
+            <li>You'll be able to review and select which companies to import</li>
           </ul>
         </Card>
       </div>
     );
   }
 
-  // Results step - show discovered companies
-  if (step === 'results') {
-    // Show loading state if results aren't ready yet
-    if (isLoadingResults || !resultsData) {
+  // Review step - show companies with checkboxes for selection
+  if (step === 'review') {
+    if (isLoadingPreview || !previewData) {
       return (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold">⏳ Loading Results...</h1>
-              <p className="text-gray-600">Fetching and importing companies...</p>
+              <p className="text-gray-600">Fetching discovered companies...</p>
             </div>
           </div>
           <Card className="p-8 text-center">
@@ -198,17 +250,15 @@ export default function AILeadFinderPage() {
       );
     }
 
-    const companies = resultsData.companies || [];
-    const skipped = resultsData.skippedDuplicates || 0;
-    const total = resultsData.totalResults || 0;
+    const companies = previewData.companies || [];
 
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">✅ Discovery Complete!</h1>
+            <h1 className="text-3xl font-bold">📋 Review Results</h1>
             <p className="text-gray-600">
-              Found {companies.length} companies and added them to your CRM
+              Found {companies.length} companies. Select which ones to import to your CRM.
             </p>
           </div>
           <Button variant="outline" onClick={handleBackToSearch}>
@@ -216,34 +266,50 @@ export default function AILeadFinderPage() {
           </Button>
         </div>
 
-        {skipped > 0 && (
-          <Card className="p-4 bg-yellow-50 border-yellow-200">
-            <p className="text-sm">
-              ⚠️ Skipped {skipped} duplicate {skipped === 1 ? 'company' : 'companies'} that
-              already exist in your CRM
-            </p>
-          </Card>
-        )}
-
         {companies.length === 0 ? (
           <Card className="p-8 text-center">
             <p className="text-gray-600 mb-4">
-              No new companies were found. All discovered companies were already in your CRM.
+              No companies were found matching your criteria.
             </p>
             <Button onClick={handleBackToSearch}>Try Different Criteria</Button>
           </Card>
         ) : (
           <>
-            <div className="flex justify-end">
-              <Button onClick={handleViewCompanies}>
-                View All Companies →
-              </Button>
-            </div>
+            <Card className="p-4 bg-blue-50 border-blue-200">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium">
+                    {selectedIds.length} of {companies.length} companies selected
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                    Select All
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleDeselectAll}>
+                    Deselect All
+                  </Button>
+                </div>
+              </div>
+            </Card>
 
             <div className="grid grid-cols-1 gap-4">
-              {companies.map((company: any, index: number) => (
-                <Card key={company.id || index} className="p-4">
-                  <div className="flex items-start justify-between">
+              {companies.map((company: any) => (
+                <Card
+                  key={company.exaId}
+                  className={`p-4 cursor-pointer transition-colors ${
+                    selectedIds.includes(company.exaId)
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'hover:border-gray-400'
+                  }`}
+                  onClick={() => handleToggleCompany(company.exaId)}
+                >
+                  <div className="flex items-start gap-4">
+                    <Checkbox
+                      checked={selectedIds.includes(company.exaId)}
+                      onCheckedChange={() => handleToggleCompany(company.exaId)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg">{company.name}</h3>
                       {company.description && (
@@ -261,28 +327,124 @@ export default function AILeadFinderPage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             🔗 {company.website}
                           </a>
                         )}
                       </div>
                     </div>
-
-                    <Badge variant="success" className="ml-4">
-                      {Math.round((company.confidence || 0.85) * 100)}% match
-                    </Badge>
                   </div>
                 </Card>
               ))}
             </div>
 
-            <div className="flex justify-center">
-              <Button onClick={handleViewCompanies} size="lg">
-                View All Companies in CRM →
-              </Button>
+            <div className="flex justify-between items-center sticky bottom-4 bg-white p-4 rounded-lg shadow-lg border">
+              <p className="text-sm font-medium">
+                {selectedIds.length} {selectedIds.length === 1 ? 'company' : 'companies'} selected
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleBackToSearch}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleImportSelected}
+                  disabled={selectedIds.length === 0}
+                  size="lg"
+                >
+                  Import {selectedIds.length > 0 && `(${selectedIds.length})`} to CRM →
+                </Button>
+              </div>
             </div>
           </>
         )}
+      </div>
+    );
+  }
+
+  // Importing step - show progress
+  if (step === 'importing') {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">📥 Importing Companies</h1>
+          <p className="text-gray-600 mt-1">Adding selected companies to your CRM</p>
+        </div>
+
+        <Card className="p-8">
+          <div className="text-center space-y-6">
+            <div className="flex justify-center">
+              <div className="animate-spin h-16 w-16 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Importing {selectedIds.length} companies...</h2>
+              <p className="text-gray-600">
+                Checking for duplicates and adding companies to your CRM
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Results step - show import results
+  if (step === 'results') {
+    if (!importResults) {
+      return (
+        <div className="space-y-6">
+          <Card className="p-8 text-center">
+            <p className="text-gray-600">Loading results...</p>
+          </Card>
+        </div>
+      );
+    }
+
+    const imported = importResults.count || 0;
+    const skipped = importResults.skippedDuplicates || 0;
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">✅ Import Complete!</h1>
+            <p className="text-gray-600">
+              Successfully imported {imported} {imported === 1 ? 'company' : 'companies'} to your CRM
+            </p>
+          </div>
+          <Button variant="outline" onClick={handleBackToSearch}>
+            ← New Search
+          </Button>
+        </div>
+
+        {skipped > 0 && (
+          <Card className="p-4 bg-yellow-50 border-yellow-200">
+            <p className="text-sm">
+              ⚠️ Skipped {skipped} duplicate {skipped === 1 ? 'company' : 'companies'} that
+              already exist in your CRM
+            </p>
+          </Card>
+        )}
+
+        <Card className="p-6 text-center">
+          <div className="mb-4">
+            <div className="text-6xl mb-2">✅</div>
+            <h2 className="text-2xl font-bold mb-2">Import Successful!</h2>
+            <p className="text-gray-600">
+              {imported} new {imported === 1 ? 'company has' : 'companies have'} been added to your CRM
+            </p>
+          </div>
+
+          <div className="flex gap-3 justify-center">
+            <Button onClick={handleViewCompanies} size="lg">
+              View Companies in CRM →
+            </Button>
+            <Button variant="outline" onClick={handleBackToSearch} size="lg">
+              Find More Leads
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -385,8 +547,8 @@ export default function AILeadFinderPage() {
         <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside">
           <li>AI searches the web for companies matching your criteria</li>
           <li>Company data is automatically enriched with details</li>
-          <li>Results are imported directly into your CRM</li>
-          <li>Duplicate companies are automatically detected and skipped</li>
+          <li>Review and select which companies to import</li>
+          <li>Selected companies are added to your CRM with duplicate detection</li>
         </ol>
       </Card>
 

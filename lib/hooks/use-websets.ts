@@ -154,6 +154,64 @@ export function useCompanyWebsetResults(websetId: string | null, enabled: boolea
   });
 }
 
+/**
+ * Hook to fetch company webset preview (without importing)
+ * Use this to show results for user review before importing
+ */
+export function useCompanyWebsetPreview(websetId: string | null, enabled: boolean = false) {
+  return useQuery({
+    queryKey: ['websets', 'companies', websetId, 'preview'],
+    queryFn: async () => {
+      if (!websetId) throw new Error('Webset ID is required');
+
+      const response = await fetch(`/api/websets/companies/${websetId}/preview`);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch webset preview');
+      }
+
+      return response.json() as Promise<WebsetResults>;
+    },
+    enabled: !!websetId && enabled,
+    retry: 1,
+    staleTime: Infinity, // Preview results don't change once fetched
+  });
+}
+
+/**
+ * Hook to import selected companies from webset
+ * Call this after user has reviewed and selected companies
+ */
+export function useCompanyWebsetImport() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ websetId, selectedIds }: { websetId: string; selectedIds: string[] }) => {
+      const response = await fetch(`/api/websets/companies/${websetId}/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selectedIds }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to import selected companies');
+      }
+
+      return response.json() as Promise<WebsetResults>;
+    },
+    onSuccess: () => {
+      // Invalidate companies list to show newly imported companies
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ['websets'] });
+    },
+    onError: (error) => {
+      logError('Failed to import selected companies', error);
+    },
+  });
+}
+
 // ============================================
 // PEOPLE WEBSETS
 // ============================================
@@ -251,6 +309,64 @@ export function usePeopleWebsetResults(websetId: string | null, enabled: boolean
     enabled: !!websetId && enabled,
     retry: 1,
     staleTime: Infinity, // Results don't change once fetched
+  });
+}
+
+/**
+ * Hook to fetch people webset preview (without importing)
+ * Use this to show results for user review before importing
+ */
+export function usePeopleWebsetPreview(websetId: string | null, enabled: boolean = false) {
+  return useQuery({
+    queryKey: ['websets', 'people', websetId, 'preview'],
+    queryFn: async () => {
+      if (!websetId) throw new Error('Webset ID is required');
+
+      const response = await fetch(`/api/websets/people/${websetId}/preview`);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch webset preview');
+      }
+
+      return response.json() as Promise<WebsetResults>;
+    },
+    enabled: !!websetId && enabled,
+    retry: 1,
+    staleTime: Infinity, // Preview results don't change once fetched
+  });
+}
+
+/**
+ * Hook to import selected people from webset
+ * Call this after user has reviewed and selected people
+ */
+export function usePeopleWebsetImport() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ websetId, selectedIds }: { websetId: string; selectedIds: string[] }) => {
+      const response = await fetch(`/api/websets/people/${websetId}/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selectedIds }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to import selected people');
+      }
+
+      return response.json() as Promise<WebsetResults>;
+    },
+    onSuccess: () => {
+      // Invalidate contacts list to show newly imported people
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['websets'] });
+    },
+    onError: (error) => {
+      logError('Failed to import selected people', error);
+    },
   });
 }
 
