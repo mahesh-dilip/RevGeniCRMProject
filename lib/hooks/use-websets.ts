@@ -49,7 +49,7 @@ export interface WebsetResults {
   companies?: any[];
   people?: any[];
   skippedDuplicates?: number;
-  skippedNoEmail?: number;
+  skippedNoLinkedIn?: number;
   totalResults?: number;
   alreadyImported?: boolean;
 }
