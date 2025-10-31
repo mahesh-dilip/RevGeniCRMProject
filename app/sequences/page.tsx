@@ -3,7 +3,7 @@
 
 import { logError } from '@/lib/logging';
 
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,27 +11,20 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 
 export default function SequencesPage() {
-  const [sequences, setSequences] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchSequences();
-  }, []);
-
-  const fetchSequences = async () => {
-    try {
+  // Fetch sequences with React Query
+  const { data: sequences = [], isLoading: loading } = useQuery({
+    queryKey: ['sequences'],
+    queryFn: async () => {
       const response = await fetch('/api/sequences');
-      const data = await response.json();
-      setSequences(data);
-    } catch (error) {
-      logError('Error fetching sequences:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (!response.ok) {
+        throw new Error('Failed to fetch sequences');
+      }
+      return response.json();
+    },
+  });
 
-  const activeSequences = sequences.filter(s => s.active).length;
-  const totalEnrollments = sequences.reduce((sum, s) => sum + (s._count?.enrollments || 0), 0);
+  const activeSequences = sequences.filter((s: any) => s.active).length;
+  const totalEnrollments = sequences.reduce((sum: number, s: any) => sum + (s._count?.enrollments || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -84,7 +77,7 @@ export default function SequencesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sequences.map((sequence) => (
+                  {sequences.map((sequence: any) => (
                     <tr key={sequence.id} className="border-b hover:bg-gray-50">
                       <td className="p-4">
                         <div>

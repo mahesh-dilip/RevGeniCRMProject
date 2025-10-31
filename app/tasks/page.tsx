@@ -3,7 +3,8 @@
 
 import { logError } from '@/lib/logging';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,65 +13,68 @@ import { format, isAfter, isBefore, startOfDay } from 'date-fns';
 import { toast } from 'sonner';
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('pending');
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  const fetchTasks = async () => {
-    try {
+  // Fetch tasks with React Query
+  const { data: tasks = [], isLoading: loading } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: async () => {
       const response = await fetch('/api/events?type=task');
-      const data = await response.json();
-      setTasks(data);
-    } catch (error) {
-      logError('Error fetching tasks:', error);
-      toast.error('Failed to load tasks');
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (!response.ok) {
+        throw new Error('Failed to fetch tasks');
+      }
+      return response.json();
+    },
+  });
 
-  const handleToggleComplete = async (taskId: string, currentStatus: boolean) => {
-    try {
+  // Mutation for toggling task completion
+  const toggleTaskMutation = useMutation({
+    mutationFn: async ({ taskId, completed }: { taskId: string; completed: boolean }) => {
       const response = await fetch(`/api/events/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completed: !currentStatus })
+        body: JSON.stringify({ completed: !completed })
       });
 
       if (!response.ok) {
         throw new Error('Failed to update task');
       }
 
-      toast.success(currentStatus ? 'Task marked as incomplete' : 'Task completed!');
-      fetchTasks();
-    } catch (error) {
+      return response.json();
+    },
+    onSuccess: (_, { completed }) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success(completed ? 'Task marked as incomplete' : 'Task completed!');
+    },
+    onError: (error) => {
       logError('Error toggling task:', error);
       toast.error('Failed to update task');
-    }
+    },
+  });
+
+  const handleToggleComplete = (taskId: string, currentStatus: boolean) => {
+    toggleTaskMutation.mutate({ taskId, completed: currentStatus });
   };
 
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks = tasks.filter((task: any) => {
     if (statusFilter === 'pending') return !task.completed;
     if (statusFilter === 'completed') return task.completed;
     return true;
   });
 
   const now = startOfDay(new Date());
-  const overdueTasks = filteredTasks.filter(t =>
+  const overdueTasks = filteredTasks.filter((t: any) =>
     !t.completed && t.dueDate && isBefore(new Date(t.dueDate), now)
   );
-  const todayTasks = filteredTasks.filter(t =>
+  const todayTasks = filteredTasks.filter((t: any) =>
     !t.completed && t.dueDate && format(new Date(t.dueDate), 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd')
   );
-  const upcomingTasks = filteredTasks.filter(t =>
+  const upcomingTasks = filteredTasks.filter((t: any) =>
     !t.completed && t.dueDate && isAfter(new Date(t.dueDate), now) && format(new Date(t.dueDate), 'yyyy-MM-dd') !== format(now, 'yyyy-MM-dd')
   );
-  const noDueDateTasks = filteredTasks.filter(t => !t.completed && !t.dueDate);
-  const completedTasks = filteredTasks.filter(t => t.completed);
+  const noDueDateTasks = filteredTasks.filter((t: any) => !t.completed && !t.dueDate);
+  const completedTasks = filteredTasks.filter((t: any) => t.completed);
 
   return (
     <div className="space-y-6">
@@ -108,14 +112,14 @@ export default function TasksPage() {
           size="sm"
           onClick={() => setStatusFilter('pending')}
         >
-          Pending ({tasks.filter(t => !t.completed).length})
+          Pending ({tasks.filter((t: any) => !t.completed).length})
         </Button>
         <Button
           variant={statusFilter === 'completed' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setStatusFilter('completed')}
         >
-          Completed ({tasks.filter(t => t.completed).length})
+          Completed ({tasks.filter((t: any) => t.completed).length})
         </Button>
         <Button
           variant={statusFilter === 'all' ? 'default' : 'outline'}
@@ -137,7 +141,7 @@ export default function TasksPage() {
             <div>
               <h2 className="text-xl font-semibold mb-3 text-red-600">⚠️ Overdue ({overdueTasks.length})</h2>
               <div className="space-y-2">
-                {overdueTasks.map((task) => (
+                {overdueTasks.map((task: any) => (
                   <TaskCard key={task.id} task={task} onToggle={handleToggleComplete} isOverdue />
                 ))}
               </div>
@@ -149,7 +153,7 @@ export default function TasksPage() {
             <div>
               <h2 className="text-xl font-semibold mb-3">📅 Due Today ({todayTasks.length})</h2>
               <div className="space-y-2">
-                {todayTasks.map((task) => (
+                {todayTasks.map((task: any) => (
                   <TaskCard key={task.id} task={task} onToggle={handleToggleComplete} />
                 ))}
               </div>
@@ -161,7 +165,7 @@ export default function TasksPage() {
             <div>
               <h2 className="text-xl font-semibold mb-3">🔜 Upcoming ({upcomingTasks.length})</h2>
               <div className="space-y-2">
-                {upcomingTasks.map((task) => (
+                {upcomingTasks.map((task: any) => (
                   <TaskCard key={task.id} task={task} onToggle={handleToggleComplete} />
                 ))}
               </div>
@@ -173,7 +177,7 @@ export default function TasksPage() {
             <div>
               <h2 className="text-xl font-semibold mb-3">📋 No Due Date ({noDueDateTasks.length})</h2>
               <div className="space-y-2">
-                {noDueDateTasks.map((task) => (
+                {noDueDateTasks.map((task: any) => (
                   <TaskCard key={task.id} task={task} onToggle={handleToggleComplete} />
                 ))}
               </div>
@@ -185,7 +189,7 @@ export default function TasksPage() {
             <div>
               <h2 className="text-xl font-semibold mb-3">✓ Completed ({completedTasks.length})</h2>
               <div className="space-y-2">
-                {completedTasks.map((task) => (
+                {completedTasks.map((task: any) => (
                   <TaskCard key={task.id} task={task} onToggle={handleToggleComplete} />
                 ))}
               </div>

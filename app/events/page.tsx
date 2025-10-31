@@ -3,7 +3,8 @@
 
 import { logError } from '@/lib/logging';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,46 +13,50 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 
 export default function EventsPage() {
-  const [events, setEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
-  const fetchEvents = async () => {
-    try {
+  // Fetch events with React Query
+  const { data: events = [], isLoading: loading } = useQuery({
+    queryKey: ['events'],
+    queryFn: async () => {
       const response = await fetch('/api/events');
-      const data = await response.json();
-      setEvents(data);
-    } catch (error) {
-      logError('Error fetching events:', error);
-      toast.error('Failed to load events');
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (!response.ok) {
+        throw new Error('Failed to fetch events');
+      }
+      return response.json();
+    },
+  });
 
-  const handleToggleComplete = async (eventId: string, currentStatus: boolean) => {
-    try {
+  // Mutation for toggling event completion
+  const toggleEventMutation = useMutation({
+    mutationFn: async ({ eventId, completed }: { eventId: string; completed: boolean }) => {
       const response = await fetch(`/api/events/${eventId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completed: !currentStatus }),
+        body: JSON.stringify({ completed: !completed }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to update event');
       }
 
-      fetchEvents();
-      toast.success(!currentStatus ? 'Event marked as completed' : 'Event marked as pending');
-    } catch (error) {
+      return response.json();
+    },
+    onSuccess: (_, { completed }) => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success(!completed ? 'Event marked as completed' : 'Event marked as pending');
+    },
+    onError: (error) => {
       logError('Error updating event:', error);
       toast.error('Failed to update event');
-    }
+    },
+  });
+
+  const handleToggleComplete = (eventId: string, currentStatus: boolean) => {
+    toggleEventMutation.mutate({ eventId, completed: currentStatus });
   };
 
   const EVENT_ICONS: Record<string, string> = {
@@ -62,7 +67,7 @@ export default function EventsPage() {
     note: '📝',
   };
 
-  const filteredEvents = events.filter(event => {
+  const filteredEvents = events.filter((event: any) => {
     if (filter === 'pending' && event.completed) return false;
     if (filter === 'completed' && !event.completed) return false;
     if (typeFilter !== 'all' && event.type !== typeFilter) return false;
@@ -95,14 +100,14 @@ export default function EventsPage() {
             size="sm"
             onClick={() => setFilter('pending')}
           >
-            Pending ({events.filter(e => !e.completed).length})
+            Pending ({events.filter((e: any) => !e.completed).length})
           </Button>
           <Button
             variant={filter === 'completed' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setFilter('completed')}
           >
-            Completed ({events.filter(e => e.completed).length})
+            Completed ({events.filter((e: any) => e.completed).length})
           </Button>
         </div>
 
@@ -142,7 +147,7 @@ export default function EventsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEvents.map((event) => (
+                  {filteredEvents.map((event: any) => (
                     <tr key={event.id} className={`border-b hover:bg-gray-50 ${event.completed ? 'opacity-60' : ''}`}>
                       <td className="p-4">
                         <div className="flex items-center gap-2">

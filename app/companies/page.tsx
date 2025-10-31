@@ -3,9 +3,10 @@
 
 import { logError } from '@/lib/logging';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,30 +15,25 @@ import { toast } from 'sonner';
 
 export default function CompaniesPage() {
   const router = useRouter();
-  const [companies, setCompanies] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<string>('');
 
-  useEffect(() => {
-    fetchCompanies();
-  }, []);
-
-  const fetchCompanies = async () => {
-    try {
+  // Fetch companies with React Query
+  const { data: companies = [], isLoading: loading } = useQuery({
+    queryKey: ['companies'],
+    queryFn: async () => {
       const response = await fetch('/api/companies');
-      const data = await response.json();
-      setCompanies(data);
-    } catch (error) {
-      logError('Error fetching companies:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (!response.ok) {
+        throw new Error('Failed to fetch companies');
+      }
+      return response.json();
+    },
+  });
 
   const filteredCompanies = statusFilter
-    ? companies.filter(c => c.status === statusFilter)
+    ? companies.filter((c: any) => c.status === statusFilter)
     : companies;
 
   const toggleSelect = (id: string) => {
@@ -54,9 +50,37 @@ export default function CompaniesPage() {
     if (selectedIds.size === filteredCompanies.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredCompanies.map(c => c.id)));
+      setSelectedIds(new Set(filteredCompanies.map((c: any) => c.id)));
     }
   };
+
+  // Mutation for bulk status updates
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ ids, status }: { ids: string[]; status: string }) => {
+      const promises = ids.map(id =>
+        fetch(`/api/companies/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        }).then(res => {
+          if (!res.ok) throw new Error('Failed to update company');
+          return res.json();
+        })
+      );
+      return Promise.all(promises);
+    },
+    onSuccess: (_, { ids, status }) => {
+      // Invalidate companies query to refetch data
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      toast.success(`Updated ${ids.length} companies to ${status}`);
+      setSelectedIds(new Set());
+      setBulkAction('');
+    },
+    onError: (error) => {
+      logError('Failed to update companies:', error);
+      toast.error('Failed to update companies');
+    },
+  });
 
   const handleBulkAction = async () => {
     if (selectedIds.size === 0) {
@@ -72,31 +96,19 @@ export default function CompaniesPage() {
       const newStatus = prompt('Enter new status (Lead, Qualified, Customer, Lost):');
       if (!newStatus) return;
 
-      try {
-        const promises = Array.from(selectedIds).map(id =>
-          fetch(`/api/companies/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: newStatus })
-          })
-        );
-        
-        await Promise.all(promises);
-        toast.success(`Updated ${selectedIds.size} companies to ${newStatus}`);
-        setSelectedIds(new Set());
-        fetchCompanies();
-      } catch (error) {
-        toast.error('Failed to update companies');
-      }
+      updateStatusMutation.mutate({
+        ids: Array.from(selectedIds),
+        status: newStatus,
+      });
     }
   };
 
   const stats = {
     total: companies.length,
-    lead: companies.filter(c => c.status === 'Lead').length,
-    qualified: companies.filter(c => c.status === 'Qualified').length,
-    customer: companies.filter(c => c.status === 'Customer').length,
-    aiGenerated: companies.filter(c => c.sourceType === 'ai_agent').length
+    lead: companies.filter((c: any) => c.status === 'Lead').length,
+    qualified: companies.filter((c: any) => c.status === 'Qualified').length,
+    customer: companies.filter((c: any) => c.status === 'Customer').length,
+    aiGenerated: companies.filter((c: any) => c.sourceType === 'ai_agent').length
   };
 
   return (
@@ -230,7 +242,7 @@ export default function CompaniesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCompanies.map((company) => (
+                  {filteredCompanies.map((company: any) => (
                     <tr key={company.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <Checkbox

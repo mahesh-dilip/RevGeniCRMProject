@@ -3,34 +3,29 @@
 
 import { logError } from '@/lib/logging';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
 export default function PeoplePage() {
-  const [people, setPeople] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    fetchPeople();
-  }, []);
-
-  const fetchPeople = async () => {
-    try {
+  // Fetch people with React Query
+  const { data: people = [], isLoading: loading } = useQuery({
+    queryKey: ['people'],
+    queryFn: async () => {
       const response = await fetch('/api/people');
-      const data = await response.json();
-      setPeople(data);
-    } catch (error) {
-      logError('Error fetching people:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (!response.ok) {
+        throw new Error('Failed to fetch people');
+      }
+      return response.json();
+    },
+  });
 
-  const filteredPeople = people.filter(person => {
+  const filteredPeople = people.filter((person: any) => {
     const searchLower = search.toLowerCase();
     return (
       person.firstName.toLowerCase().includes(searchLower) ||
@@ -84,7 +79,7 @@ export default function PeoplePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPeople.map((person) => (
+                  {filteredPeople.map((person: any) => (
                     <tr key={person.id} className="border-b hover:bg-gray-50">
                       <td className="p-4">
                         <Link

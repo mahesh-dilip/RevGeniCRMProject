@@ -3,8 +3,8 @@
 
 import { logError } from '@/lib/logging';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,33 +12,26 @@ import { DEAL_STAGES } from '@/lib/utils/constants';
 import { formatCurrency } from '@/lib/utils/formatters';
 
 export default function DealsPage() {
-  const [deals, setDeals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchDeals();
-  }, []);
-
-  const fetchDeals = async () => {
-    try {
+  // Fetch deals with React Query
+  const { data: deals = [], isLoading: loading } = useQuery({
+    queryKey: ['deals'],
+    queryFn: async () => {
       const response = await fetch('/api/deals');
-      const data = await response.json();
-      setDeals(data);
-    } catch (error) {
-      logError('Error fetching deals:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (!response.ok) {
+        throw new Error('Failed to fetch deals');
+      }
+      return response.json();
+    },
+  });
 
   const getDealsByStage = (stage: string) => {
-    return deals.filter((deal) => deal.stage === stage);
+    return deals.filter((deal: any) => deal.stage === stage);
   };
 
   const getTotalValueByStage = (stage: string) => {
     return deals
-      .filter((deal) => deal.stage === stage)
-      .reduce((sum, deal) => sum + (deal.value || 0), 0);
+      .filter((deal: any) => deal.stage === stage)
+      .reduce((sum: number, deal: any) => sum + (deal.value || 0), 0);
   };
 
   return (
@@ -101,7 +94,7 @@ export default function DealsPage() {
                     </div>
 
                     <div className="p-3 space-y-3 max-h-[600px] overflow-y-auto">
-                      {stageDeals.map((deal) => {
+                      {stageDeals.map((deal: any) => {
                         const borderColor =
                           stage.value === 'Won' ? '#10b981' :
                           stage.value === 'Lost' ? '#ef4444' :
