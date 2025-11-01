@@ -34,9 +34,14 @@ export default function SequencesPage() {
           <h1 className="text-3xl font-bold">Email Sequences</h1>
           <p className="text-gray-600">{sequences.length} sequences • {totalEnrollments} total enrollments</p>
         </div>
-        <Link href="/sequences/new">
-          <Button>+ Create Sequence</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/sequences/new-from-template">
+            <Button>🤖 Create with AI</Button>
+          </Link>
+          <Link href="/sequences/new">
+            <Button variant="outline">+ Create Manually</Button>
+          </Link>
+        </div>
       </div>
 
       {loading && (

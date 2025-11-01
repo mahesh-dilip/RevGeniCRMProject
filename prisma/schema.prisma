@@ -9,17 +9,18 @@ datasource db {
 }
 
 model Tenant {
-  id        String          @id @default(cuid())
-  name      String
-  domain    String?         @unique
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  companies Company[]
-  deals     Deal[]
-  sequences EmailSequence[]
-  events    Event[]
-  people    Person[]
-  users     User[]
+  id              String            @id @default(cuid())
+  name            String
+  domain          String?           @unique
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  companies       Company[]
+  deals           Deal[]
+  sequences       EmailSequence[]
+  events          Event[]
+  people          Person[]
+  users           User[]
+  outreachProfiles OutreachProfile[]
 }
 
 model User {
@@ -254,6 +255,27 @@ model Webset {
   @@index([status])
   @@index([type])
   @@index([createdBy])
+}
+
+model OutreachProfile {
+  id                String   @id @default(cuid())
+  tenantId          String
+  name              String
+  description       String?
+  companyOffering   String
+  valueProposition  String
+  targetPainPoints  Json
+  keyDifferentiators Json
+  successStories    Json
+  tone              String   @default("professional")
+  ctaPreference     String
+  isDefault         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([isDefault])
 }
 
 enum UserRole {
