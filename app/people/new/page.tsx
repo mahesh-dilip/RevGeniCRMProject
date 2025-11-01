@@ -5,6 +5,7 @@ import { logError } from '@/lib/logging';
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,11 +14,10 @@ import { toast } from 'sonner';
 
 function NewPersonForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const preselectedCompanyId = searchParams?.get('companyId');
 
-  const [loading, setLoading] = useState(false);
-  const [companies, setCompanies] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -28,38 +28,36 @@ function NewPersonForm() {
     companyId: preselectedCompanyId || '',
   });
 
-  useEffect(() => {
-    fetchCompanies();
-  }, []);
-
-  const fetchCompanies = async () => {
-    try {
+  // Fetch companies with React Query
+  const { data: companies = [] } = useQuery({
+    queryKey: ['companies'],
+    queryFn: async () => {
       const response = await fetch('/api/companies');
-      const data = await response.json();
-      setCompanies(data);
-    } catch (error) {
-      logError('Error fetching companies:', error);
-      toast.error('Failed to load companies');
-    }
-  };
+      if (!response.ok) throw new Error('Failed to load companies');
+      return response.json();
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
+  const createPersonMutation = useMutation({
+    mutationFn: async (data: any) => {
       const response = await fetch('/api/people', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create person');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create person');
       }
 
-      const person = await response.json();
+      return response.json();
+    },
+    onSuccess: (person) => {
+      // Invalidate both people and companies queries (to update counts)
+      queryClient.invalidateQueries({ queryKey: ['people'] });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+
       toast.success(`Added ${person.firstName} ${person.lastName} successfully!`);
 
       // If we came from a company page, go back there
@@ -68,12 +66,16 @@ function NewPersonForm() {
       } else {
         router.push('/people');
       }
-    } catch (error) {
+    },
+    onError: (error: Error) => {
       logError('Error creating person:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create person');
-    } finally {
-      setLoading(false);
+      toast.error(error.message);
     }
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    createPersonMutation.mutate(formData);
   };
 
   return (
@@ -178,8 +180,8 @@ function NewPersonForm() {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Adding...' : 'Add Person'}
+              <Button type="submit" disabled={createPersonMutation.isPending}>
+                {createPersonMutation.isPending ? 'Adding...' : 'Add Person'}
               </Button>
               <Button
                 type="button"

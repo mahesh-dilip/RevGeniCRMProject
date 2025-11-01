@@ -5,6 +5,7 @@ import { logError } from '@/lib/logging';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +15,7 @@ import { toast } from 'sonner';
 
 export default function NewCompanyPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     name: '',
     website: '',
@@ -25,36 +26,42 @@ export default function NewCompanyPage() {
     foundedYear: ''
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
+  const createCompanyMutation = useMutation({
+    mutationFn: async (data: any) => {
       const response = await fetch('/api/companies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          foundedYear: formData.foundedYear ? parseInt(formData.foundedYear) : null,
-          sourceType: 'manual',
-          status: 'Lead'
-        })
+        body: JSON.stringify(data)
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create company');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create company');
       }
 
-      const company = await response.json();
+      return response.json();
+    },
+    onSuccess: (company) => {
+      // Invalidate and refetch companies list
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
       toast.success(`${company.name} added successfully!`);
       router.push('/companies');
-    } catch (error) {
+    },
+    onError: (error: Error) => {
       logError('Error creating company:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create company');
-    } finally {
-      setLoading(false);
+      toast.error(error.message);
     }
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    createCompanyMutation.mutate({
+      ...formData,
+      foundedYear: formData.foundedYear ? parseInt(formData.foundedYear) : null,
+      sourceType: 'manual',
+      status: 'Lead'
+    });
   };
 
   return (
@@ -165,8 +172,8 @@ export default function NewCompanyPage() {
           <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Creating...' : 'Create Company'}
+          <Button type="submit" disabled={createCompanyMutation.isPending}>
+            {createCompanyMutation.isPending ? 'Creating...' : 'Create Company'}
           </Button>
         </div>
       </form>

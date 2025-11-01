@@ -5,6 +5,7 @@ import { logError } from '@/lib/logging';
 
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,10 +17,8 @@ import { InlinePersonForm } from '@/components/people/InlinePersonForm';
 
 function NewDealForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
-  const [loading, setLoading] = useState(false);
-  const [companies, setCompanies] = useState<any[]>([]);
-  const [people, setPeople] = useState<any[]>([]);
   const [selectedCompanyPeople, setSelectedCompanyPeople] = useState<any[]>([]);
   const [showInlinePersonForm, setShowInlinePersonForm] = useState(false);
 
@@ -35,38 +34,32 @@ function NewDealForm() {
     primaryContactId: ''
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [companiesRes, peopleRes] = await Promise.all([
-          fetch('/api/companies'),
-          fetch('/api/people')
-        ]);
+  // Fetch companies and people with React Query
+  const { data: companies = [] } = useQuery({
+    queryKey: ['companies'],
+    queryFn: async () => {
+      const response = await fetch('/api/companies');
+      if (!response.ok) throw new Error('Failed to load companies');
+      return response.json();
+    },
+  });
 
-        const companiesData = await companiesRes.json();
-        const peopleData = await peopleRes.json();
-
-        // Ensure we have arrays even if API returns errors
-        setCompanies(Array.isArray(companiesData) ? companiesData : []);
-        setPeople(Array.isArray(peopleData) ? peopleData : []);
-      } catch (error) {
-        logError('Error fetching data:', error);
-        toast.error('Failed to load companies and contacts');
-        setCompanies([]);
-        setPeople([]);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const { data: people = [] } = useQuery({
+    queryKey: ['people'],
+    queryFn: async () => {
+      const response = await fetch('/api/people');
+      if (!response.ok) throw new Error('Failed to load people');
+      return response.json();
+    },
+  });
 
   useEffect(() => {
     if (formData.companyId) {
-      const filtered = people.filter(p => p.companyId === formData.companyId);
+      const filtered = people.filter((p: any) => p.companyId === formData.companyId);
       setSelectedCompanyPeople(filtered);
 
       // Auto-generate title if company is selected
-      const company = companies.find(c => c.id === formData.companyId);
+      const company = companies.find((c: any) => c.id === formData.companyId);
       if (company && !formData.title) {
         setFormData(prev => ({
           ...prev,
@@ -78,36 +71,44 @@ function NewDealForm() {
     }
   }, [formData.companyId, people, companies]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
+  const createDealMutation = useMutation({
+    mutationFn: async (data: any) => {
       const response = await fetch('/api/deals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          value: formData.value ? parseFloat(formData.value) : null,
-          closeDate: formData.closeDate ? new Date(formData.closeDate).toISOString() : null,
-          primaryContactId: formData.primaryContactId || null
-        })
+        body: JSON.stringify(data)
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create deal');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create deal');
       }
 
-      const deal = await response.json();
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate deals and companies queries (to update counts)
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+
       toast.success('Deal created successfully!');
       router.push('/deals');
-    } catch (error) {
+    },
+    onError: (error: Error) => {
       logError('Create deal error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create deal');
-    } finally {
-      setLoading(false);
+      toast.error(error.message);
     }
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    createDealMutation.mutate({
+      ...formData,
+      value: formData.value ? parseFloat(formData.value) : null,
+      closeDate: formData.closeDate ? new Date(formData.closeDate).toISOString() : null,
+      primaryContactId: formData.primaryContactId || null
+    });
   };
 
   return (
@@ -279,8 +280,8 @@ function NewDealForm() {
           <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Creating...' : 'Create Deal'}
+          <Button type="submit" disabled={createDealMutation.isPending}>
+            {createDealMutation.isPending ? 'Creating...' : 'Create Deal'}
           </Button>
         </div>
       </form>
@@ -289,8 +290,8 @@ function NewDealForm() {
         <InlinePersonForm
           companyId={formData.companyId}
           onPersonCreated={(newPerson) => {
-            setPeople([...people, newPerson]);
-            setSelectedCompanyPeople([...selectedCompanyPeople, newPerson]);
+            // Invalidate people query to refetch with new person
+            queryClient.invalidateQueries({ queryKey: ['people'] });
             setFormData({ ...formData, primaryContactId: newPerson.id });
             setShowInlinePersonForm(false);
           }}

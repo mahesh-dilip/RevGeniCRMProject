@@ -5,6 +5,7 @@ import { logError } from '@/lib/logging';
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,14 +15,10 @@ import { toast } from 'sonner';
 
 function NewEventForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const preselectedCompanyId = searchParams?.get('companyId');
   const preselectedDealId = searchParams?.get('dealId');
-
-  const [loading, setLoading] = useState(false);
-  const [companies, setCompanies] = useState<any[]>([]);
-  const [people, setPeople] = useState<any[]>([]);
-  const [deals, setDeals] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     type: 'task',
@@ -34,73 +31,62 @@ function NewEventForm() {
     dealId: preselectedDealId || '',
   });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Fetch companies with React Query
+  const { data: companies = [] } = useQuery({
+    queryKey: ['companies'],
+    queryFn: async () => {
+      const response = await fetch('/api/companies');
+      if (!response.ok) throw new Error('Failed to load companies');
+      return response.json();
+    },
+  });
 
-  useEffect(() => {
-    if (formData.companyId) {
-      fetchPeopleForCompany(formData.companyId);
-      fetchDealsForCompany(formData.companyId);
-    } else {
-      setPeople([]);
-      setDeals([]);
-    }
-  }, [formData.companyId]);
+  // Fetch people for selected company
+  const { data: people = [] } = useQuery({
+    queryKey: ['people', formData.companyId],
+    queryFn: async () => {
+      if (!formData.companyId) return [];
+      const response = await fetch(`/api/people?companyId=${formData.companyId}`);
+      if (!response.ok) throw new Error('Failed to load people');
+      return response.json();
+    },
+    enabled: !!formData.companyId,
+  });
 
-  const fetchData = async () => {
-    try {
-      const companiesResponse = await fetch('/api/companies');
-      const companiesData = await companiesResponse.json();
-      setCompanies(companiesData);
-    } catch (error) {
-      logError('Error fetching data:', error);
-      toast.error('Failed to load data');
-    }
-  };
+  // Fetch deals for selected company
+  const { data: deals = [] } = useQuery({
+    queryKey: ['deals', formData.companyId],
+    queryFn: async () => {
+      if (!formData.companyId) return [];
+      const response = await fetch(`/api/deals?companyId=${formData.companyId}`);
+      if (!response.ok) throw new Error('Failed to load deals');
+      return response.json();
+    },
+    enabled: !!formData.companyId,
+  });
 
-  const fetchPeopleForCompany = async (companyId: string) => {
-    try {
-      const response = await fetch(`/api/people?companyId=${companyId}`);
-      const data = await response.json();
-      setPeople(data);
-    } catch (error) {
-      logError('Error fetching people:', error);
-    }
-  };
-
-  const fetchDealsForCompany = async (companyId: string) => {
-    try {
-      const response = await fetch(`/api/deals?companyId=${companyId}`);
-      const data = await response.json();
-      setDeals(data);
-    } catch (error) {
-      logError('Error fetching deals:', error);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
+  const createEventMutation = useMutation({
+    mutationFn: async (data: any) => {
       const response = await fetch('/api/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          companyId: formData.companyId || null,
-          personId: formData.personId || null,
-          dealId: formData.dealId || null,
-        }),
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create event');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create event');
       }
 
-      const event = await response.json();
+      return response.json();
+    },
+    onSuccess: (event) => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ['people'] });
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+
       toast.success(`Event "${event.title}" created successfully!`);
 
       // Navigate based on context
@@ -111,12 +97,22 @@ function NewEventForm() {
       } else {
         router.push('/events');
       }
-    } catch (error) {
+    },
+    onError: (error: Error) => {
       logError('Error creating event:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create event');
-    } finally {
-      setLoading(false);
+      toast.error(error.message);
     }
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    createEventMutation.mutate({
+      ...formData,
+      companyId: formData.companyId || null,
+      personId: formData.personId || null,
+      dealId: formData.dealId || null,
+    });
   };
 
   const eventTypes = [
@@ -319,8 +315,8 @@ function NewEventForm() {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Event'}
+              <Button type="submit" disabled={createEventMutation.isPending}>
+                {createEventMutation.isPending ? 'Creating...' : 'Create Event'}
               </Button>
               <Button
                 type="button"

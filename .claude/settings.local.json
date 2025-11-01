@@ -22,7 +22,10 @@
       "Bash(xargs kill -9)",
       "Bash(node test-exa-people.js:*)",
       "Bash(pkill:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npx tsx:*)",
+      "Bash(DATABASE_URL=\"$DIRECT_URL\" npx tsx:*)",
+      "Bash(npm run db:boost:*)"
     ],
     "deny": [],
     "ask": []

@@ -418,8 +418,9 @@ export function usePeopleWebsetImport() {
       return response.json() as Promise<WebsetResults>;
     },
     onSuccess: () => {
-      // Invalidate contacts list to show newly imported people
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      // Invalidate people and companies lists to show newly imported people
+      queryClient.invalidateQueries({ queryKey: ['people'] });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
       queryClient.invalidateQueries({ queryKey: ['websets'] });
     },
     onError: (error) => {

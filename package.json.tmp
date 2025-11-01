@@ -1,0 +1,4 @@
+,
+  "scripts": {
+    "db:boost": "npx tsx scripts/boost-demo-data.ts"
+  }
