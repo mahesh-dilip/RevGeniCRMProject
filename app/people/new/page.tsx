@@ -168,7 +168,7 @@ function NewPersonForm() {
                 required
               >
                 <option value="">Select a company...</option>
-                {companies.map((company) => (
+                {companies.map((company: any) => (
                   <option key={company.id} value={company.id}>
                     {company.name}
                   </option>

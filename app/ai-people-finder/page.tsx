@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -18,7 +18,7 @@ import {
 
 type Step = 'search' | 'processing' | 'review' | 'importing' | 'results';
 
-export default function AIPeopleFinderPage() {
+function AIPeopleFinderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>('search');
@@ -800,5 +800,13 @@ export default function AIPeopleFinderPage() {
         </p>
       </Card>
     </div>
+  );
+}
+
+export default function AIPeopleFinderPage() {
+  return (
+    <Suspense fallback={<div className="max-w-6xl mx-auto py-12 text-center">Loading...</div>}>
+      <AIPeopleFinderContent />
+    </Suspense>
   );
 }

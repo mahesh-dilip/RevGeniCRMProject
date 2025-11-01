@@ -3,15 +3,17 @@
 
 import { logError } from '@/lib/logging';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 export default function PeoplePage() {
   const [search, setSearch] = useState('');
+  const [companyFilter, setCompanyFilter] = useState<string | null>(null);
 
   // Fetch people with React Query
   const { data: people = [], isLoading: loading } = useQuery({
@@ -25,14 +27,45 @@ export default function PeoplePage() {
     },
   });
 
+  // Calculate stats
+  const stats = useMemo(() => {
+    const totalWithEmail = people.filter((p: any) => p.email).length;
+    const totalWithDeals = people.filter((p: any) => (p._count?.primaryDeals || 0) > 0).length;
+    const totalWithActivities = people.filter((p: any) => (p._count?.events || 0) > 0).length;
+
+    // Get top companies
+    const companyCounts = people.reduce((acc: any, p: any) => {
+      const companyName = p.company?.name || 'Unknown';
+      acc[companyName] = (acc[companyName] || 0) + 1;
+      return acc;
+    }, {});
+
+    const topCompanies = Object.entries(companyCounts)
+      .sort(([, a]: any, [, b]: any) => b - a)
+      .slice(0, 5)
+      .map(([name]) => name);
+
+    return {
+      total: people.length,
+      withEmail: totalWithEmail,
+      withDeals: totalWithDeals,
+      withActivities: totalWithActivities,
+      topCompanies,
+    };
+  }, [people]);
+
   const filteredPeople = people.filter((person: any) => {
     const searchLower = search.toLowerCase();
-    return (
+    const matchesSearch = !search ||
       person.firstName.toLowerCase().includes(searchLower) ||
       person.lastName.toLowerCase().includes(searchLower) ||
       person.email?.toLowerCase().includes(searchLower) ||
-      person.company.name.toLowerCase().includes(searchLower)
-    );
+      person.title?.toLowerCase().includes(searchLower) ||
+      person.company.name.toLowerCase().includes(searchLower);
+
+    const matchesCompany = !companyFilter || person.company.name === companyFilter;
+
+    return matchesSearch && matchesCompany;
   });
 
   return (
@@ -52,22 +85,62 @@ export default function PeoplePage() {
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <Input
-          type="text"
-          placeholder="Search people by name, email, or company..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-md"
-        />
-      </div>
-
       {loading && (
         <div className="text-center py-12 text-gray-600">Loading...</div>
       )}
 
       {!loading && (
         <>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="p-4">
+              <p className="text-sm text-gray-600">Total People</p>
+              <p className="text-2xl font-bold">{stats.total}</p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-sm text-gray-600">With Email</p>
+              <p className="text-2xl font-bold">{stats.withEmail}</p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-sm text-gray-600">With Deals</p>
+              <p className="text-2xl font-bold">{stats.withDeals}</p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-sm text-gray-600">Active</p>
+              <p className="text-2xl font-bold">{stats.withActivities}</p>
+            </Card>
+          </div>
+
+          {/* Search and Filters */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <Input
+              type="text"
+              placeholder="Search people by name, email, title, or company..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="md:max-w-md"
+            />
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant={!companyFilter ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setCompanyFilter(null)}
+              >
+                All Companies
+              </Button>
+              {stats.topCompanies.map((company: string) => (
+                <Button
+                  key={company}
+                  variant={companyFilter === company ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCompanyFilter(company)}
+                >
+                  {company}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           <Card>
             <div className="overflow-x-auto">
               <table className="w-full">

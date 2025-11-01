@@ -3,8 +3,9 @@
 
 import { logError } from '@/lib/logging';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,46 +14,37 @@ import Link from 'next/link';
 
 function EnrollSequenceForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const companyId = searchParams?.get('companyId');
-  
-  const [loading, setLoading] = useState(false);
-  const [sequences, setSequences] = useState<any[]>([]);
-  const [company, setCompany] = useState<any>(null);
 
-  useEffect(() => {
-    if (companyId) {
-      fetchData();
-    }
-  }, [companyId]);
+  // Fetch sequences with React Query
+  const { data: allSequences = [], isLoading: loadingSequences } = useQuery({
+    queryKey: ['sequences'],
+    queryFn: async () => {
+      const response = await fetch('/api/sequences');
+      if (!response.ok) throw new Error('Failed to load sequences');
+      return response.json();
+    },
+  });
 
-  const fetchData = async () => {
-    try {
-      const [sequencesRes, companyRes] = await Promise.all([
-        fetch('/api/sequences'),
-        fetch(`/api/companies/${companyId}`)
-      ]);
+  // Fetch company with React Query
+  const { data: company, isLoading: loadingCompany } = useQuery({
+    queryKey: ['companies', companyId],
+    queryFn: async () => {
+      const response = await fetch(`/api/companies/${companyId}`);
+      if (!response.ok) throw new Error('Failed to load company');
+      return response.json();
+    },
+    enabled: !!companyId,
+  });
 
-      const sequencesData = await sequencesRes.json();
-      const companyData = await companyRes.json();
+  // Filter to only active sequences
+  const sequences = allSequences.filter((s: any) => s.active);
+  const isLoading = loadingSequences || loadingCompany;
 
-      // Only show active sequences
-      setSequences(sequencesData.filter((s: any) => s.active));
-      setCompany(companyData);
-    } catch (error) {
-      logError('Error fetching data:', error);
-      toast.error('Failed to load sequences');
-    }
-  };
-
-  const handleEnroll = async (sequenceId: string) => {
-    if (!companyId) {
-      toast.error('No company selected');
-      return;
-    }
-
-    setLoading(true);
-    try {
+  const enrollMutation = useMutation({
+    mutationFn: async (sequenceId: string) => {
       const response = await fetch(`/api/sequences/${sequenceId}/enroll`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -65,14 +57,26 @@ function EnrollSequenceForm() {
         throw new Error(data.error || 'Failed to enroll');
       }
 
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['sequences'] });
       toast.success('Company enrolled in sequence!');
       router.push(`/companies/${companyId}`);
-    } catch (error) {
+    },
+    onError: (error: Error) => {
       logError('Enrollment error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to enroll');
-    } finally {
-      setLoading(false);
+      toast.error(error.message);
     }
+  });
+
+  const handleEnroll = (sequenceId: string) => {
+    if (!companyId) {
+      toast.error('No company selected');
+      return;
+    }
+    enrollMutation.mutate(sequenceId);
   };
 
   if (!companyId) {
@@ -97,7 +101,14 @@ function EnrollSequenceForm() {
         )}
       </div>
 
-      {sequences.length === 0 ? (
+      {isLoading ? (
+        <Card className="p-12 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+          </div>
+          <p className="text-gray-600">Loading sequences...</p>
+        </Card>
+      ) : sequences.length === 0 ? (
         <Card className="p-12 text-center">
           <p className="text-gray-600 mb-4">No active sequences available</p>
           <Link href="/sequences/new">
@@ -106,7 +117,7 @@ function EnrollSequenceForm() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {sequences.map((sequence) => (
+          {sequences.map((sequence: any) => (
             <Card
               key={sequence.id}
               className="hover:shadow-lg transition-shadow cursor-pointer"
@@ -140,9 +151,9 @@ function EnrollSequenceForm() {
                   <div className="flex gap-2 pt-2">
                     <Button
                       onClick={() => handleEnroll(sequence.id)}
-                      disabled={loading}
+                      disabled={enrollMutation.isPending}
                     >
-                      {loading ? 'Enrolling...' : 'Enroll Company'}
+                      {enrollMutation.isPending ? 'Enrolling...' : 'Enroll Company'}
                     </Button>
                     <Link href={`/sequences/${sequence.id}`}>
                       <Button variant="outline">View Details</Button>

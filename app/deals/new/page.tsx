@@ -21,6 +21,7 @@ function NewDealForm() {
   const searchParams = useSearchParams();
   const [selectedCompanyPeople, setSelectedCompanyPeople] = useState<any[]>([]);
   const [showInlinePersonForm, setShowInlinePersonForm] = useState(false);
+  const [companySearchQuery, setCompanySearchQuery] = useState('');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -35,7 +36,7 @@ function NewDealForm() {
   });
 
   // Fetch companies and people with React Query
-  const { data: companies = [] } = useQuery({
+  const { data: allCompanies = [] } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
       const response = await fetch('/api/companies');
@@ -53,13 +54,19 @@ function NewDealForm() {
     },
   });
 
+  // Filter companies based on search query
+  const filteredCompanies = allCompanies.filter((company: any) =>
+    company.name.toLowerCase().includes(companySearchQuery.toLowerCase()) ||
+    company.industry?.toLowerCase().includes(companySearchQuery.toLowerCase())
+  );
+
   useEffect(() => {
     if (formData.companyId) {
       const filtered = people.filter((p: any) => p.companyId === formData.companyId);
       setSelectedCompanyPeople(filtered);
 
       // Auto-generate title if company is selected
-      const company = companies.find((c: any) => c.id === formData.companyId);
+      const company = allCompanies.find((c: any) => c.id === formData.companyId);
       if (company && !formData.title) {
         setFormData(prev => ({
           ...prev,
@@ -69,7 +76,7 @@ function NewDealForm() {
     } else {
       setSelectedCompanyPeople([]);
     }
-  }, [formData.companyId, people, companies]);
+  }, [formData.companyId, people, allCompanies]);
 
   const createDealMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -125,22 +132,31 @@ function NewDealForm() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="companyId">Company *</Label>
-              <select
-                id="companyId"
-                value={formData.companyId}
-                onChange={(e) => setFormData({ ...formData, companyId: e.target.value, primaryContactId: '' })}
-                className="w-full border rounded p-2"
-                required
-              >
-                <option value="">Select a company...</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-2">
+                <Input
+                  type="text"
+                  placeholder="Search companies by name or industry..."
+                  value={companySearchQuery}
+                  onChange={(e) => setCompanySearchQuery(e.target.value)}
+                />
+                <select
+                  id="companyId"
+                  value={formData.companyId}
+                  onChange={(e) => setFormData({ ...formData, companyId: e.target.value, primaryContactId: '' })}
+                  className="w-full border rounded p-2"
+                  required
+                  size={Math.min(filteredCompanies.length + 1, 6)}
+                >
+                  <option value="">Select a company...</option>
+                  {filteredCompanies.map((company: any) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}{company.industry ? ` - ${company.industry}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <p className="text-xs text-gray-500 mt-1">
-                Which company is this deal with?
+                Which company is this deal with? ({filteredCompanies.length} shown)
               </p>
             </div>
 

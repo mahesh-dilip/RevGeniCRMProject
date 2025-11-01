@@ -3,17 +3,22 @@
 
 import { logError } from '@/lib/logging';
 
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { DEAL_STAGES } from '@/lib/utils/constants';
 import { formatCurrency } from '@/lib/utils/formatters';
 
 export default function DealsPage() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [companyFilter, setCompanyFilter] = useState<string | null>(null);
+
   // Fetch deals with React Query
-  const { data: deals = [], isLoading: loading } = useQuery({
+  const { data: allDeals = [], isLoading: loading } = useQuery({
     queryKey: ['deals'],
     queryFn: async () => {
       const response = await fetch('/api/deals');
@@ -22,6 +27,32 @@ export default function DealsPage() {
       }
       return response.json();
     },
+  });
+
+  // Get top companies for filters
+  const topCompanies = useMemo(() => {
+    const companyCounts = allDeals.reduce((acc: any, deal: any) => {
+      const companyName = deal.company?.name || 'Unknown';
+      acc[companyName] = (acc[companyName] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(companyCounts)
+      .sort(([, a]: any, [, b]: any) => b - a)
+      .slice(0, 5)
+      .map(([name]) => name);
+  }, [allDeals]);
+
+  // Filter deals
+  const deals = allDeals.filter((deal: any) => {
+    const matchesSearch = !searchQuery ||
+      deal.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      deal.company?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      deal.description?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCompany = !companyFilter || deal.company?.name === companyFilter;
+
+    return matchesSearch && matchesCompany;
   });
 
   const getDealsByStage = (stage: string) => {
@@ -51,7 +82,7 @@ export default function DealsPage() {
         <div className="text-center py-12 text-gray-600">Loading...</div>
       )}
 
-      {!loading && deals.length === 0 && (
+      {!loading && allDeals.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center text-gray-600">
             No deals yet. Create a deal from a company to get started.
@@ -59,8 +90,48 @@ export default function DealsPage() {
         </Card>
       )}
 
-      {!loading && deals.length > 0 && (
-        <div className="bg-gray-50 p-6 rounded-lg">
+      {!loading && allDeals.length > 0 && (
+        <>
+          {/* Search and Filters */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <Input
+              type="text"
+              placeholder="Search deals by name, company, or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="md:max-w-md"
+            />
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant={!companyFilter ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setCompanyFilter(null)}
+              >
+                All Companies
+              </Button>
+              {topCompanies.map((company: string) => (
+                <Button
+                  key={company}
+                  variant={companyFilter === company ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCompanyFilter(company)}
+                >
+                  {company}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {deals.length === 0 && (searchQuery || companyFilter) && (
+            <Card>
+              <CardContent className="py-12 text-center text-gray-600">
+                No deals match your filters. Try adjusting your search.
+              </CardContent>
+            </Card>
+          )}
+
+          {deals.length > 0 && (
+            <div className="bg-gray-50 p-6 rounded-lg">
           <div className="flex gap-4 overflow-x-auto pb-4">
             {DEAL_STAGES.map((stage) => {
               const stageDeals = getDealsByStage(stage.value);
@@ -155,6 +226,8 @@ export default function DealsPage() {
             })}
           </div>
         </div>
+          )}
+        </>
       )}
     </div>
   );

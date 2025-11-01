@@ -11,12 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 export default function CompaniesPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<string>('');
 
@@ -32,9 +34,15 @@ export default function CompaniesPage() {
     },
   });
 
-  const filteredCompanies = statusFilter
-    ? companies.filter((c: any) => c.status === statusFilter)
-    : companies;
+  // Filter by status and search query
+  const filteredCompanies = companies.filter((c: any) => {
+    const matchesStatus = !statusFilter || c.status === statusFilter;
+    const matchesSearch = !searchQuery ||
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.industry?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
 
   const toggleSelect = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -159,36 +167,45 @@ export default function CompaniesPage() {
             </Card>
           </div>
 
-          {/* Filters */}
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              variant={!statusFilter ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setStatusFilter(null)}
-            >
-              All
-            </Button>
-            <Button
-              variant={statusFilter === 'Lead' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setStatusFilter('Lead')}
-            >
-              Leads
-            </Button>
-            <Button
-              variant={statusFilter === 'Qualified' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setStatusFilter('Qualified')}
-            >
-              Qualified
-            </Button>
-            <Button
-              variant={statusFilter === 'Customer' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setStatusFilter('Customer')}
-            >
-              Customers
-            </Button>
+          {/* Search and Filters */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <Input
+              type="text"
+              placeholder="Search companies by name, industry, or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="md:max-w-md"
+            />
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant={!statusFilter ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter(null)}
+              >
+                All
+              </Button>
+              <Button
+                variant={statusFilter === 'Lead' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('Lead')}
+              >
+                Leads
+              </Button>
+              <Button
+                variant={statusFilter === 'Qualified' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('Qualified')}
+              >
+                Qualified
+              </Button>
+              <Button
+                variant={statusFilter === 'Customer' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('Customer')}
+              >
+                Customers
+              </Button>
+            </div>
           </div>
 
           {/* Bulk Action Bar */}

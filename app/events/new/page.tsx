@@ -247,7 +247,7 @@ function NewEventForm() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">None</option>
-                    {companies.map((company) => (
+                    {companies.map((company: any) => (
                       <option key={company.id} value={company.id}>
                         {company.name}
                       </option>
@@ -270,7 +270,7 @@ function NewEventForm() {
                         disabled={people.length === 0}
                       >
                         <option value="">None</option>
-                        {people.map((person) => (
+                        {people.map((person: any) => (
                           <option key={person.id} value={person.id}>
                             {person.firstName} {person.lastName}
                           </option>
@@ -297,7 +297,7 @@ function NewEventForm() {
                         disabled={deals.length === 0}
                       >
                         <option value="">None</option>
-                        {deals.map((deal) => (
+                        {deals.map((deal: any) => (
                           <option key={deal.id} value={deal.id}>
                             {deal.title} - {deal.stage}
                           </option>

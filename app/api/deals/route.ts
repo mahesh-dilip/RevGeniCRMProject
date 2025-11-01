@@ -85,6 +85,35 @@ export async function POST(request: Request) {
       },
     });
 
+    // Auto-update company status based on deal stage
+    // Mapping: Qualified/Demo/Proposal/Negotiation deals -> Qualified company
+    // Won deals -> Customer company
+    const dealStageToCompanyStatus: { [key: string]: string } = {
+      'Qualified': 'Qualified',
+      'Demo': 'Qualified',
+      'Proposal': 'Qualified',
+      'Negotiation': 'Qualified',
+      'Won': 'Customer',
+    };
+
+    const newCompanyStatus = dealStageToCompanyStatus[deal.stage];
+    if (newCompanyStatus) {
+      // Only update if the company is currently at a lower lifecycle stage
+      const statusHierarchy: { [key: string]: number } = {
+        'Lead': 1,
+        'Qualified': 2,
+        'Customer': 3,
+      };
+
+      const currentStatus = deal.company.status || 'Lead';
+      if (statusHierarchy[newCompanyStatus] > (statusHierarchy[currentStatus] || 0)) {
+        await prisma.company.update({
+          where: { id: deal.companyId },
+          data: { status: newCompanyStatus },
+        });
+      }
+    }
+
     // Trigger automations
     await onDealCreated(deal.id);
 

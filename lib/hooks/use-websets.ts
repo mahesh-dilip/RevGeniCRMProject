@@ -52,6 +52,7 @@ export interface WebsetResults {
   skippedNoLinkedIn?: number;
   totalResults?: number;
   alreadyImported?: boolean;
+  searchesComplete?: boolean;
 }
 
 // ============================================

@@ -184,7 +184,7 @@ export async function POST(
     const existingLinkedInSet = new Set(existingPeople.map(p => p.linkedin));
 
     // OPTIMIZATION: Batch fetch all companies by names
-    const companyNames = [...new Set(extractedPeople.map(p => p.companyName).filter(Boolean))];
+    const companyNames = Array.from(new Set(extractedPeople.map(p => p.companyName).filter(Boolean)));
     const existingCompanies = await prisma.company.findMany({
       where: {
         name: { in: companyNames },
@@ -226,7 +226,7 @@ export async function POST(
       email: p.email,
       linkedin: p.linkedinUrl,
       title: p.jobTitle,
-    })).filter(p => p.companyId !== null); // Only create if we have a company
+    })).filter((p): p is typeof p & { companyId: string } => p.companyId !== null); // Only create if we have a company
 
     if (peopleToCreate.length > 0) {
       const createdPeopleResult = await prisma.person.createManyAndReturn({
