@@ -77,6 +77,9 @@ export async function POST(
     let skippedDuplicates = 0;
     const criteria = webset.criteria as any;
 
+    // OPTIMIZATION: Extract all company data first, then batch database operations
+    const extractedCompanies = [];
+
     for (const item of selectedItems) {
       try {
         const properties = (item as any).properties || {};
@@ -102,44 +105,59 @@ export async function POST(
           foundedYear: companyInfo.founded || null,
         };
 
-        // Check for duplicates
-        const duplicate = await checkForDuplicate(companyData.website, companyData.name);
-
-        if (duplicate) {
-          logInfo('Skipping duplicate company from webset', {
-            name: companyData.name,
-            website: companyData.website,
-          });
-          skippedDuplicates++;
-          continue;
-        }
-
-        // Create company record
-        const company = await prisma.company.create({
-          data: {
-            tenantId,
-            websetId: webset.id,
-            name: companyData.name,
-            website: companyData.website,
-            industry: companyData.industry,
-            size: companyData.size,
-            geography: companyData.geography,
-            description: companyData.description,
-            foundedYear: companyData.foundedYear,
-            status: 'Lead',
-            sourceType: 'exa_webset',
-            sourceQuery: webset.query,
-            confidence: 0.85,
-          },
-        });
-
-        createdCompanies.push(company);
+        extractedCompanies.push(companyData);
       } catch (itemError) {
-        logError('Error importing company from webset', itemError, {
-          websetId: webset.id,
-          item: item,
-        });
+        logError('Error extracting company from webset', itemError);
       }
+    }
+
+    // OPTIMIZATION: Batch check for duplicates
+    const websites = extractedCompanies.map(c => c.website).filter(Boolean);
+    const names = extractedCompanies.map(c => c.name);
+
+    const existingCompanies = await prisma.company.findMany({
+      where: {
+        tenantId,
+        OR: [
+          { website: { in: websites } },
+          { name: { in: names } }
+        ]
+      },
+      select: { website: true, name: true },
+    });
+
+    const existingWebsites = new Set(existingCompanies.map(c => c.website).filter(Boolean));
+    const existingNames = new Set(existingCompanies.map(c => c.name));
+
+    // OPTIMIZATION: Create all non-duplicate companies in batch
+    const companiesToCreate = extractedCompanies.filter(c => {
+      const isDuplicate = (c.website && existingWebsites.has(c.website)) || existingNames.has(c.name);
+      if (isDuplicate) {
+        skippedDuplicates++;
+        return false;
+      }
+      return true;
+    }).map(c => ({
+      tenantId,
+      websetId: webset.id,
+      name: c.name,
+      website: c.website,
+      industry: c.industry,
+      size: c.size,
+      geography: c.geography,
+      description: c.description,
+      foundedYear: c.foundedYear,
+      status: 'Lead',
+      sourceType: 'exa_webset',
+      sourceQuery: webset.query,
+      confidence: 0.85,
+    }));
+
+    if (companiesToCreate.length > 0) {
+      const createdCompaniesResult = await prisma.company.createManyAndReturn({
+        data: companiesToCreate,
+      });
+      createdCompanies.push(...createdCompaniesResult);
     }
 
     // Update webset result count
