@@ -93,6 +93,8 @@ export async function GET(
           websetId: webset.id,
           oldStatus: webset.status,
           newStatus: mappedStatus,
+          exaWebsetStatus: exaStatus.status,
+          allSearchesCompleted: exaStatus.allSearchesCompleted,
           tenantId,
         });
 
@@ -103,6 +105,9 @@ export async function GET(
           resultCount: updatedWebset.resultCount,
           completedAt: updatedWebset.completedAt,
           createdAt: updatedWebset.createdAt,
+          // IMPORTANT: Include search completion status for progressive loading
+          searchesComplete: exaStatus.allSearchesCompleted,
+          exaWebsetStatus: exaStatus.status,
         });
       }
 
@@ -113,6 +118,9 @@ export async function GET(
         resultCount: webset.resultCount,
         completedAt: webset.completedAt,
         createdAt: webset.createdAt,
+        // IMPORTANT: Include search completion status for progressive loading
+        searchesComplete: exaStatus.allSearchesCompleted,
+        exaWebsetStatus: exaStatus.status,
       });
     } catch (exaError) {
       // If Exa API fails, return cached status

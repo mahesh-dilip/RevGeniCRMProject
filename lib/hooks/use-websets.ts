@@ -122,8 +122,8 @@ export function useCompanyWebsetStatus(
       if (status === 'completed' || status === 'failed') {
         return false;
       }
-      // Poll every 5 seconds while processing
-      return options?.refetchInterval !== undefined ? options.refetchInterval : 5000;
+      // Poll every 2 seconds while processing (optimized for fast item discovery)
+      return options?.refetchInterval !== undefined ? options.refetchInterval : 2000;
     },
     retry: 3,
   });
@@ -175,7 +175,36 @@ export function useCompanyWebsetPreview(websetId: string | null, enabled: boolea
     },
     enabled: !!websetId && enabled,
     retry: 1,
-    staleTime: Infinity, // Preview results don't change once fetched
+    staleTime: (query) => {
+      // Allow refetching while searches are not completed
+      const data = query?.state?.data as any;
+      const searchesComplete = data?.searchesComplete;
+      const exaStatus = data?.exaWebsetStatus;
+
+      // Keep staleTime at 0 if:
+      // 1. Searches are still running (searchesComplete === false)
+      // 2. Webset is not idle yet (exaStatus !== 'idle')
+      // 3. We have partial data flag set
+      if (searchesComplete === false || exaStatus === 'running' || data?.isPartial) {
+        return 0; // Always allow refetch
+      }
+      return Infinity; // Otherwise, cache forever
+    },
+    refetchInterval: (query) => {
+      // Keep polling while searches are finding new items
+      const data = query?.state?.data as any;
+      const searchesComplete = data?.searchesComplete;
+      const exaStatus = data?.exaWebsetStatus;
+
+      // CRITICAL: Poll if searches are NOT complete or webset is still running
+      // This ensures we fetch ALL items as they become available
+      if (searchesComplete === false || exaStatus === 'running') {
+        return 2000; // Poll every 2 seconds for new items
+      }
+
+      // Stop polling once searches are complete
+      return false;
+    },
   });
 }
 
@@ -280,8 +309,8 @@ export function usePeopleWebsetStatus(
       if (status === 'completed' || status === 'failed') {
         return false;
       }
-      // Poll every 5 seconds while processing
-      return options?.refetchInterval !== undefined ? options.refetchInterval : 5000;
+      // Poll every 2 seconds while processing (optimized for fast item discovery)
+      return options?.refetchInterval !== undefined ? options.refetchInterval : 2000;
     },
     retry: 3,
   });
@@ -333,7 +362,36 @@ export function usePeopleWebsetPreview(websetId: string | null, enabled: boolean
     },
     enabled: !!websetId && enabled,
     retry: 1,
-    staleTime: Infinity, // Preview results don't change once fetched
+    staleTime: (query) => {
+      // Allow refetching while searches are not completed
+      const data = query?.state?.data as any;
+      const searchesComplete = data?.searchesComplete;
+      const exaStatus = data?.exaWebsetStatus;
+
+      // Keep staleTime at 0 if:
+      // 1. Searches are still running (searchesComplete === false)
+      // 2. Webset is not idle yet (exaStatus !== 'idle')
+      // 3. We have partial data flag set
+      if (searchesComplete === false || exaStatus === 'running' || data?.isPartial) {
+        return 0; // Always allow refetch
+      }
+      return Infinity; // Otherwise, cache forever
+    },
+    refetchInterval: (query) => {
+      // Keep polling while searches are finding new items
+      const data = query?.state?.data as any;
+      const searchesComplete = data?.searchesComplete;
+      const exaStatus = data?.exaWebsetStatus;
+
+      // CRITICAL: Poll if searches are NOT complete or webset is still running
+      // This ensures we fetch ALL items as they become available
+      if (searchesComplete === false || exaStatus === 'running') {
+        return 2000; // Poll every 2 seconds for new items
+      }
+
+      // Stop polling once searches are complete
+      return false;
+    },
   });
 }
 

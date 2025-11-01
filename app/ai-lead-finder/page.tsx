@@ -51,7 +51,9 @@ export default function AILeadFinderPage() {
     error: previewError,
   } = useCompanyWebsetPreview(
     websetId,
-    statusData?.status === 'completed' && step === 'processing'
+    // CRITICAL: Keep polling during BOTH processing AND review steps
+    // This ensures we continue fetching new items as they become available
+    step === 'processing' || step === 'review'
   );
 
   const {
@@ -82,19 +84,40 @@ export default function AILeadFinderPage() {
     if (statusData?.status === 'failed') {
       toast.error('Webset processing failed. Please try again.');
       setStep('search');
-    } else if (
-      statusData?.status === 'completed' &&
-      step === 'processing' &&
-      previewData &&
-      !isLoadingPreview
-    ) {
+    } else if (step === 'processing' && previewData && previewData.count > 0) {
+      // Advance to review as soon as we have ANY results (progressive display)
       setStep('review');
-      // Auto-select all companies by default
+      // Auto-select all companies as they come in
       if (previewData.companies) {
         setSelectedIds(previewData.companies.map((c: any) => c.exaId));
       }
+    } else if (step === 'processing' && previewData) {
+      // Check if searches are truly complete with no results
+      // Only show "no results" if:
+      // 1. Searches are complete (searchesComplete === true)
+      // 2. We have checked preview data
+      // 3. Count is still 0
+      const searchesComplete = (previewData as any).searchesComplete === true;
+      const hasNoResults = previewData.count === 0;
+
+      if (searchesComplete && hasNoResults) {
+        toast.error('No companies found matching your criteria. Try adjusting your search parameters or broadening the criteria.');
+        setStep('search');
+      }
     }
   }, [statusData?.status, step, previewData, isLoadingPreview]);
+
+  // Auto-select new items as they arrive during review
+  useEffect(() => {
+    if (step === 'review' && previewData?.companies) {
+      const currentIds = previewData.companies.map((c: any) => c.exaId);
+      // Add any new IDs that aren't already selected
+      setSelectedIds(prev => {
+        const newIds = currentIds.filter(id => !prev.includes(id));
+        return newIds.length > 0 ? [...prev, ...newIds] : prev;
+      });
+    }
+  }, [previewData?.companies, step]);
 
   // Handle import completion
   useEffect(() => {
@@ -251,14 +274,51 @@ export default function AILeadFinderPage() {
     }
 
     const companies = previewData.companies || [];
+    // Use searchesComplete from preview data to determine if searches are done
+    // (not just if enrichments are done)
+    const isStillSearching = previewData.searchesComplete === false;
+    const isCompleted = previewData.searchesComplete === true;
 
     return (
       <div className="space-y-6">
+        {/* Live status banner */}
+        {isStillSearching && (
+          <Card className="p-4 bg-blue-50 border-blue-200">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+              <div className="flex-1">
+                <p className="font-medium text-blue-900">
+                  🔍 Still searching for more companies...
+                </p>
+                <p className="text-sm text-blue-700">
+                  Results are being added in real-time. Enrichments (employee count, website, etc.) are being processed in the background.
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {isCompleted && (
+          <Card className="p-4 bg-green-50 border-green-200">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">✅</span>
+              <div className="flex-1">
+                <p className="font-medium text-green-900">
+                  Search complete!
+                </p>
+                <p className="text-sm text-green-700">
+                  All companies have been discovered. Enrichments may still be processing in the background.
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">📋 Review Results</h1>
             <p className="text-gray-600">
-              Found {companies.length} companies. Select which ones to import to your CRM.
+              {isStillSearching ? `Found ${companies.length} companies so far...` : `Found ${companies.length} companies.`} Select which ones to import to your CRM.
             </p>
           </div>
           <Button variant="outline" onClick={handleBackToSearch}>

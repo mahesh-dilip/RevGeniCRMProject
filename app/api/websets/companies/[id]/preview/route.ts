@@ -37,11 +37,13 @@ export async function GET(
       );
     }
 
-    // Check if webset is completed
-    if (webset.status !== 'completed') {
+    // Allow fetching items even while webset is processing
+    // Items are available immediately through the list endpoint
+    // Only block if explicitly failed
+    if (webset.status === 'failed') {
       return NextResponse.json(
         {
-          error: 'Webset is not completed yet',
+          error: 'Webset processing failed',
           status: webset.status,
           websetId: webset.id,
         },
@@ -49,27 +51,46 @@ export async function GET(
       );
     }
 
-    // Fetch results from Exa (raw data)
-    logInfo('Fetching webset preview from Exa', {
+    // Fetch results from Exa (raw data) - progressive fetching
+    const exaService = new ExaWebsetsService();
+
+    // Check current search status BEFORE fetching items
+    const exaStatus = await exaService.checkStatus(webset.exaId);
+
+    logInfo('Fetching webset preview progressively', {
       websetId: webset.id,
       exaId: webset.exaId,
       tenantId,
+      currentStatus: webset.status,
+      exaWebsetStatus: exaStatus.status,
+      allSearchesCompleted: exaStatus.allSearchesCompleted,
+      searches: exaStatus.searches,
     });
 
-    const exaService = new ExaWebsetsService();
-    const { items } = await exaService.getWebsetResults(webset.exaId);
+    const items = await exaService.fetchItemsProgressive(webset.exaId);
 
     if (!items || items.length === 0) {
-      logWarning('No results found in completed webset', {
+      logWarning('No results found yet in webset', {
         websetId: webset.id,
         exaId: webset.exaId,
+        currentStatus: webset.status,
+        exaWebsetStatus: exaStatus.status,
+        allSearchesCompleted: exaStatus.allSearchesCompleted,
       });
+
+      // CRITICAL: Still return search status info even when no items yet
+      // This allows frontend to keep polling if searches are still running
+      const searchesStillRunning = exaStatus.allSearchesCompleted === false;
 
       return NextResponse.json({
         success: true,
         count: 0,
         companies: [],
-        message: 'No companies found in webset',
+        message: 'No companies found yet in webset',
+        status: webset.status,
+        exaWebsetStatus: exaStatus.status,
+        searchesComplete: exaStatus.allSearchesCompleted,
+        isPartial: searchesStillRunning
       });
     }
 
@@ -119,15 +140,25 @@ export async function GET(
 
     logInfo('Webset preview fetched successfully', {
       websetId: webset.id,
-      count: companies.length,
+      rawItemCount: items.length,
+      parsedCompaniesCount: companies.length,
+      exaWebsetStatus: exaStatus.status,
+      allSearchesCompleted: exaStatus.allSearchesCompleted,
       tenantId,
     });
+
+    // Determine if searches are still running (not just enrichments)
+    const searchesStillRunning = exaStatus.allSearchesCompleted === false;
 
     return NextResponse.json({
       success: true,
       count: companies.length,
       companies,
       totalResults: items.length,
+      status: webset.status,
+      exaWebsetStatus: exaStatus.status,
+      searchesComplete: exaStatus.allSearchesCompleted,
+      isPartial: searchesStillRunning // Indicate if searches are still finding items
     });
   } catch (error) {
     logError('Error fetching webset preview', error);

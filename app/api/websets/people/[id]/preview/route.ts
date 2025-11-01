@@ -37,11 +37,13 @@ export async function GET(
       );
     }
 
-    // Check if webset is completed
-    if (webset.status !== 'completed') {
+    // Allow fetching items even while webset is processing
+    // Items are available immediately through the list endpoint
+    // Only block if explicitly failed
+    if (webset.status === 'failed') {
       return NextResponse.json(
         {
-          error: 'Webset is not completed yet',
+          error: 'Webset processing failed',
           status: webset.status,
           websetId: webset.id,
         },
@@ -49,27 +51,46 @@ export async function GET(
       );
     }
 
-    // Fetch results from Exa (raw data)
-    logInfo('Fetching people webset preview from Exa', {
+    // Fetch results from Exa (raw data) - progressive fetching
+    const exaService = new ExaWebsetsService();
+
+    // Check current search status BEFORE fetching items
+    const exaStatus = await exaService.checkStatus(webset.exaId);
+
+    logInfo('Fetching people webset preview progressively', {
       websetId: webset.id,
       exaId: webset.exaId,
       tenantId,
+      currentStatus: webset.status,
+      exaWebsetStatus: exaStatus.status,
+      allSearchesCompleted: exaStatus.allSearchesCompleted,
+      searches: exaStatus.searches,
     });
 
-    const exaService = new ExaWebsetsService();
-    const { items } = await exaService.getWebsetResults(webset.exaId);
+    const items = await exaService.fetchItemsProgressive(webset.exaId);
 
     if (!items || items.length === 0) {
-      logWarning('No results found in completed people webset', {
+      logWarning('No results found yet in people webset', {
         websetId: webset.id,
         exaId: webset.exaId,
+        currentStatus: webset.status,
+        exaWebsetStatus: exaStatus.status,
+        allSearchesCompleted: exaStatus.allSearchesCompleted,
       });
+
+      // CRITICAL: Still return search status info even when no items yet
+      // This allows frontend to keep polling if searches are still running
+      const searchesStillRunning = exaStatus.allSearchesCompleted === false;
 
       return NextResponse.json({
         success: true,
         count: 0,
         people: [],
-        message: 'No people found in webset',
+        message: 'No people found yet in webset',
+        status: webset.status,
+        exaWebsetStatus: exaStatus.status,
+        searchesComplete: exaStatus.allSearchesCompleted,
+        isPartial: searchesStillRunning
       });
     }
 
@@ -134,15 +155,25 @@ export async function GET(
 
     logInfo('People webset preview fetched successfully', {
       websetId: webset.id,
-      count: people.length,
+      rawItemCount: items.length,
+      parsedPeopleCount: people.length,
+      exaWebsetStatus: exaStatus.status,
+      allSearchesCompleted: exaStatus.allSearchesCompleted,
       tenantId,
     });
+
+    // Determine if searches are still running (not just enrichments)
+    const searchesStillRunning = exaStatus.allSearchesCompleted === false;
 
     return NextResponse.json({
       success: true,
       count: people.length,
       people,
       totalResults: items.length,
+      status: webset.status,
+      exaWebsetStatus: exaStatus.status,
+      searchesComplete: exaStatus.allSearchesCompleted,
+      isPartial: searchesStillRunning // Indicate if searches are still finding items
     });
   } catch (error) {
     logError('Error fetching people webset preview', error);
