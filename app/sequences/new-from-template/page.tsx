@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { logError } from '@/lib/logging';
 import { AILoading } from '@/components/ui/ai-loading';
+import { AIOperationErrorBoundary } from '@/components/ai-error-boundary';
 
 type Step = 'template' | 'profile' | 'preview' | 'edit' | 'saving';
 
@@ -174,7 +175,8 @@ export default function NewSequenceFromTemplatePage() {
   const selectedTemplate = templates.find((t: any) => t.id === selectedTemplateId);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <AIOperationErrorBoundary>
+      <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Create Sequence with AI</h1>
@@ -482,6 +484,7 @@ export default function NewSequenceFromTemplatePage() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </AIOperationErrorBoundary>
   );
 }

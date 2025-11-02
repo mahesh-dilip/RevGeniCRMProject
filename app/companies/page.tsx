@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Pagination } from '@/components/ui/pagination';
 import { toast } from 'sonner';
 
 export default function CompaniesPage() {
@@ -21,6 +22,8 @@ export default function CompaniesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   // Fetch companies with React Query
   const { data: companies = [], isLoading: loading } = useQuery({
@@ -43,6 +46,23 @@ export default function CompaniesPage() {
       c.description?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredCompanies.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedCompanies = filteredCompanies.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  const handleFilterChange = (newFilter: string | null) => {
+    setStatusFilter(newFilter);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
 
   const toggleSelect = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -78,7 +98,6 @@ export default function CompaniesPage() {
       return Promise.all(promises);
     },
     onSuccess: (_, { ids, status }) => {
-      // Invalidate companies query to refetch data
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       toast.success(`Updated ${ids.length} companies to ${status}`);
       setSelectedIds(new Set());
@@ -87,6 +106,31 @@ export default function CompaniesPage() {
     onError: (error) => {
       logError('Failed to update companies:', error);
       toast.error('Failed to update companies');
+    },
+  });
+
+  // Mutation for bulk delete
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const promises = ids.map(id =>
+        fetch(`/api/companies/${id}`, {
+          method: 'DELETE'
+        }).then(res => {
+          if (!res.ok) throw new Error('Failed to delete company');
+          return res.json();
+        })
+      );
+      return Promise.all(promises);
+    },
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      toast.success(`Deleted ${ids.length} ${ids.length === 1 ? 'company' : 'companies'}`);
+      setSelectedIds(new Set());
+      setBulkAction('');
+    },
+    onError: (error) => {
+      logError('Failed to delete companies:', error);
+      toast.error('Failed to delete companies');
     },
   });
 
@@ -108,6 +152,13 @@ export default function CompaniesPage() {
         ids: Array.from(selectedIds),
         status: newStatus,
       });
+    } else if (bulkAction === 'delete') {
+      const confirmed = confirm(
+        `Are you sure you want to delete ${selectedIds.size} ${selectedIds.size === 1 ? 'company' : 'companies'}? This action cannot be undone.`
+      );
+      if (!confirmed) return;
+
+      deleteMutation.mutate(Array.from(selectedIds));
     }
   };
 
@@ -173,38 +224,25 @@ export default function CompaniesPage() {
               type="text"
               placeholder="Search companies by name, industry, or description..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="md:max-w-md"
             />
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant={!statusFilter ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter(null)}
+            <div className="flex gap-2 items-center">
+              <label htmlFor="status-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Status:
+              </label>
+              <select
+                id="status-filter"
+                value={statusFilter || ''}
+                onChange={(e) => handleFilterChange(e.target.value || null)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
               >
-                All
-              </Button>
-              <Button
-                variant={statusFilter === 'Lead' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter('Lead')}
-              >
-                Leads
-              </Button>
-              <Button
-                variant={statusFilter === 'Qualified' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter('Qualified')}
-              >
-                Qualified
-              </Button>
-              <Button
-                variant={statusFilter === 'Customer' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter('Customer')}
-              >
-                Customers
-              </Button>
+                <option value="">All Statuses</option>
+                <option value="Lead">Leads</option>
+                <option value="Qualified">Qualified</option>
+                <option value="Customer">Customers</option>
+                <option value="Lost">Lost</option>
+              </select>
             </div>
           </div>
 
@@ -224,6 +262,7 @@ export default function CompaniesPage() {
                     <option value="">Select action...</option>
                     <option value="enroll-sequence">Enroll in Sequence</option>
                     <option value="change-status">Change Status</option>
+                    <option value="delete">Delete Companies</option>
                   </select>
                   <Button onClick={handleBulkAction} disabled={!bulkAction}>
                     Apply
@@ -257,7 +296,7 @@ export default function CompaniesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCompanies.map((company: any) => (
+                  {paginatedCompanies.map((company: any) => (
                     <tr key={company.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={(e) => {
                       if ((e.target as HTMLElement).closest('input, a, button')) return;
                       window.location.href = `/companies/${company.id}`;
@@ -324,6 +363,16 @@ export default function CompaniesPage() {
                 </div>
               )}
             </div>
+
+            {filteredCompanies.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredCompanies.length}
+              />
+            )}
           </Card>
         </>
       )}

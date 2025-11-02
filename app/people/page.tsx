@@ -10,10 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Pagination } from '@/components/ui/pagination';
 
 export default function PeoplePage() {
   const [search, setSearch] = useState('');
   const [companyFilter, setCompanyFilter] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   // Fetch people with React Query
   const { data: people = [], isLoading: loading } = useQuery({
@@ -68,6 +71,23 @@ export default function PeoplePage() {
     return matchesSearch && matchesCompany;
   });
 
+  // Pagination
+  const totalPages = Math.ceil(filteredPeople.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPeople = filteredPeople.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
+
+  const handleCompanyFilter = (company: string | null) => {
+    setCompanyFilter(company);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -117,27 +137,26 @@ export default function PeoplePage() {
               type="text"
               placeholder="Search people by name, email, title, or company..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="md:max-w-md"
             />
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant={!companyFilter ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCompanyFilter(null)}
+            <div className="flex gap-2 items-center">
+              <label htmlFor="company-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Company:
+              </label>
+              <select
+                id="company-filter"
+                value={companyFilter || ''}
+                onChange={(e) => handleCompanyFilter(e.target.value || null)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
               >
-                All Companies
-              </Button>
-              {stats.topCompanies.map((company: string) => (
-                <Button
-                  key={company}
-                  variant={companyFilter === company ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setCompanyFilter(company)}
-                >
-                  {company}
-                </Button>
-              ))}
+                <option value="">All Companies</option>
+                {stats.topCompanies.map((company: string) => (
+                  <option key={company} value={company}>
+                    {company}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -156,7 +175,7 @@ export default function PeoplePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPeople.map((person: any) => (
+                  {paginatedPeople.map((person: any) => (
                     <tr key={person.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={(e) => {
                       if ((e.target as HTMLElement).closest('a, button')) return;
                       window.location.href = `/people/${person.id}`;
@@ -216,6 +235,16 @@ export default function PeoplePage() {
                 </div>
               )}
             </div>
+
+            {filteredPeople.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredPeople.length}
+              />
+            )}
           </Card>
         </>
       )}

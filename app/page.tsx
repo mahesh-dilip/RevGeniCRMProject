@@ -26,7 +26,7 @@ async function DashboardMetrics() {
         },
         include: { company: true, deal: true },
         orderBy: { dueDate: 'asc' },
-        take: 10
+        take: 5 // Limit to 5 for compact dashboard
       })
     ]);
 
@@ -86,60 +86,90 @@ async function DashboardMetrics() {
           </Card>
         </div>
 
-        <Suspense fallback={<div className="h-32 bg-gray-100 animate-pulse rounded" />}>
-          <SmartSuggestions />
-        </Suspense>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <div>
-            <h2 className="text-xl font-semibold mb-4">📋 Upcoming Tasks</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">📋 Upcoming Tasks</h2>
+              <Link href="/tasks">
+                <Button variant="outline" size="sm">View All</Button>
+              </Link>
+            </div>
             {tasksData.length > 0 ? (
               <div className="space-y-2">
                 {tasksData.map((task) => (
                   <TaskCard key={task.id} task={task} />
                 ))}
+                {tasksData.length === 5 && (
+                  <Link href="/tasks">
+                    <Card className="p-3 hover:bg-gray-50 transition-colors cursor-pointer text-center">
+                      <p className="text-sm text-blue-600 font-medium">View all tasks →</p>
+                    </Card>
+                  </Link>
+                )}
               </div>
             ) : (
               <Card className="p-8 text-center text-gray-500">
                 <p>No upcoming tasks</p>
+                <Link href="/tasks/new">
+                  <Button className="mt-3" size="sm">Create Task</Button>
+                </Link>
               </Card>
             )}
           </div>
 
           <div>
             <h2 className="text-xl font-semibold mb-4">🚀 Quick Actions</h2>
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
               <Link href="/ai-lead-finder">
-                <Card className="p-4 hover:bg-gray-50 transition-colors cursor-pointer">
-                  <h3 className="font-semibold">🤖 Find New Leads with AI</h3>
-                  <p className="text-sm text-gray-600">Use AI to discover companies matching your criteria</p>
+                <Card className="p-4 hover:bg-gray-50 transition-colors cursor-pointer h-full">
+                  <div className="text-2xl mb-2">🤖</div>
+                  <h3 className="font-semibold text-sm">AI Lead Finder</h3>
+                  <p className="text-xs text-gray-600 mt-1">Discover companies</p>
                 </Card>
               </Link>
-              <Link href="/companies">
-                <Card className="p-4 hover:bg-gray-50 transition-colors cursor-pointer">
-                  <h3 className="font-semibold">🏢 View Companies</h3>
-                  <p className="text-sm text-gray-600">Manage your leads and customers</p>
+              <Link href="/companies/new">
+                <Card className="p-4 hover:bg-gray-50 transition-colors cursor-pointer h-full">
+                  <div className="text-2xl mb-2">🏢</div>
+                  <h3 className="font-semibold text-sm">Add Company</h3>
+                  <p className="text-xs text-gray-600 mt-1">Manual entry</p>
                 </Card>
               </Link>
-              <Link href="/deals">
-                <Card className="p-4 hover:bg-gray-50 transition-colors cursor-pointer">
-                  <h3 className="font-semibold">💼 View Pipeline</h3>
-                  <p className="text-sm text-gray-600">Track deals through your sales process</p>
+              <Link href="/deals/new">
+                <Card className="p-4 hover:bg-gray-50 transition-colors cursor-pointer h-full">
+                  <div className="text-2xl mb-2">💼</div>
+                  <h3 className="font-semibold text-sm">New Deal</h3>
+                  <p className="text-xs text-gray-600 mt-1">Create opportunity</p>
                 </Card>
               </Link>
-              <Link href="/sequences">
-                <Card className="p-4 hover:bg-gray-50 transition-colors cursor-pointer">
-                  <h3 className="font-semibold">📧 Email Sequences</h3>
-                  <p className="text-sm text-gray-600">Set up automated email campaigns</p>
+              <Link href="/sequences/new-from-template">
+                <Card className="p-4 hover:bg-gray-50 transition-colors cursor-pointer h-full">
+                  <div className="text-2xl mb-2">📧</div>
+                  <h3 className="font-semibold text-sm">AI Sequence</h3>
+                  <p className="text-xs text-gray-600 mt-1">Email campaign</p>
                 </Card>
               </Link>
             </div>
           </div>
         </div>
 
-        <Suspense fallback={<div className="h-64 bg-gray-100 animate-pulse rounded mt-6" />}>
-          <DealCharts />
+        <Suspense fallback={<div className="h-32 bg-gray-100 animate-pulse rounded" />}>
+          <SmartSuggestions />
         </Suspense>
+
+        {/* Link to detailed analytics */}
+        <Card className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">📊 Detailed Analytics</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                View comprehensive charts, pipeline analysis, and performance metrics
+              </p>
+            </div>
+            <Link href="/analytics">
+              <Button>View Analytics →</Button>
+            </Link>
+          </div>
+        </Card>
       </>
     );
   } catch (error) {

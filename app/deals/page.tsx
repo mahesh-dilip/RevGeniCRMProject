@@ -98,27 +98,28 @@ export default function DealsPage() {
               type="text"
               placeholder="Search deals by name, company, or description..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+              }}
               className="md:max-w-md"
             />
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant={!companyFilter ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCompanyFilter(null)}
+            <div className="flex gap-2 items-center">
+              <label htmlFor="company-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Company:
+              </label>
+              <select
+                id="company-filter"
+                value={companyFilter || ''}
+                onChange={(e) => setCompanyFilter(e.target.value || null)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
               >
-                All Companies
-              </Button>
-              {topCompanies.map((company: string) => (
-                <Button
-                  key={company}
-                  variant={companyFilter === company ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setCompanyFilter(company)}
-                >
-                  {company}
-                </Button>
-              ))}
+                <option value="">All Companies</option>
+                {topCompanies.map((company: string) => (
+                  <option key={company} value={company}>
+                    {company}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

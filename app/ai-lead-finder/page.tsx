@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { AILoading } from '@/components/ui/ai-loading';
+import { AIOperationErrorBoundary } from '@/components/ai-error-boundary';
 import {
   useCompanyWebsetWorkflow,
   useCompanyWebsetStatus,
@@ -507,7 +508,8 @@ export default function AILeadFinderPage() {
 
   // Search step - initial form
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <AIOperationErrorBoundary>
+      <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-bold">🤖 AI Lead Finder</h1>
         <p className="text-gray-600 mt-1">
@@ -616,6 +618,7 @@ export default function AILeadFinderPage() {
           and more.
         </p>
       </Card>
-    </div>
+      </div>
+    </AIOperationErrorBoundary>
   );
 }
