@@ -80,21 +80,29 @@ export async function POST(request: Request) {
 
     const data = validation.data;
 
+    // Prepare data object
+    const eventData: any = {
+      tenantId,
+      type: data.type,
+      title: data.title,
+      description: data.description,
+      dueDate: data.dueDate ? new Date(data.dueDate) : null,
+      completed: data.completed || false,
+      source: data.source || 'manual',
+      priority: data.priority,
+      outcome: data.outcome,
+      companyId: data.companyId,
+      personId: data.personId,
+      dealId: data.dealId,
+    };
+
+    // If activityDate is provided (for historical activities), use it as createdAt
+    if (data.activityDate) {
+      eventData.createdAt = new Date(data.activityDate);
+    }
+
     const event = await prisma.event.create({
-      data: {
-        tenantId,
-        type: data.type,
-        title: data.title,
-        description: data.description,
-        dueDate: data.dueDate ? new Date(data.dueDate) : null,
-        completed: data.completed || false,
-        source: data.source || 'manual',
-        priority: data.priority,
-        outcome: data.outcome,
-        companyId: data.companyId,
-        personId: data.personId,
-        dealId: data.dealId,
-      },
+      data: eventData,
       include: {
         company: true,
         person: true,

@@ -25,6 +25,7 @@ function NewEventForm() {
     title: '',
     description: '',
     dueDate: '',
+    activityDate: '',
     priority: 'medium',
     companyId: preselectedCompanyId || '',
     personId: '',
@@ -107,12 +108,26 @@ function NewEventForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    createEventMutation.mutate({
-      ...formData,
+    // Prepare the data based on event type
+    const submitData: any = {
+      type: formData.type,
+      title: formData.title,
+      description: formData.description,
       companyId: formData.companyId || null,
       personId: formData.personId || null,
       dealId: formData.dealId || null,
-    });
+    };
+
+    // For tasks, include due date and priority
+    if (formData.type === 'task') {
+      submitData.dueDate = formData.dueDate || null;
+      submitData.priority = formData.priority;
+    } else {
+      // For activities, include activity date
+      submitData.activityDate = formData.activityDate || null;
+    }
+
+    createEventMutation.mutate(submitData);
   };
 
   const eventTypes = [
@@ -200,6 +215,30 @@ function NewEventForm() {
                 rows={3}
               />
             </div>
+
+            {/* Show activity date for non-task events */}
+            {formData.type !== 'task' && (
+              <>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-800">
+                    <strong>Activity Date:</strong> When did this activity occur? This helps maintain an accurate timeline of past interactions.
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="activityDate">Activity Date</Label>
+                  <Input
+                    id="activityDate"
+                    type="datetime-local"
+                    value={formData.activityDate}
+                    onChange={(e) => setFormData({ ...formData, activityDate: e.target.value })}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Leave blank to use the current date/time
+                  </p>
+                </div>
+              </>
+            )}
 
             {/* Only show due date and priority for tasks */}
             {formData.type === 'task' && (

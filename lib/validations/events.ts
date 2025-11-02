@@ -24,6 +24,12 @@ export const CreateEventSchema = z
       .or(z.string().date())
       .optional()
       .nullable(),
+    activityDate: z
+      .string()
+      .datetime({ message: 'Invalid date format' })
+      .or(z.string().date())
+      .optional()
+      .nullable(),
     completed: z.boolean().optional().default(false),
     source: z.enum(['manual', 'automation', 'api']).optional().default('manual'),
     priority: z.enum(PriorityLevels).optional().nullable(),
