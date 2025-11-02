@@ -3,12 +3,13 @@
 
 import { logError } from '@/lib/logging';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { toast } from 'sonner';
 
 const EVENT_ICONS: Record<string, string> = {
@@ -22,6 +23,9 @@ export default function ActivitiesPage() {
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [companyFilter, setCompanyFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateRangeFilter, setDateRangeFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchActivities();
@@ -42,10 +46,55 @@ export default function ActivitiesPage() {
     }
   };
 
-  const filteredActivities = activities.filter(activity => {
-    if (typeFilter === 'all') return true;
-    return activity.type === typeFilter;
-  });
+  // Get unique companies for filter dropdown
+  const companies = useMemo(() => {
+    const uniqueCompanies = new Map();
+    activities.forEach((activity: any) => {
+      if (activity.company) {
+        uniqueCompanies.set(activity.company.id, activity.company.name);
+      }
+    });
+    return Array.from(uniqueCompanies.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [activities]);
+
+  const filteredActivities = useMemo(() => {
+    return activities.filter(activity => {
+      // Type filter
+      if (typeFilter !== 'all' && activity.type !== typeFilter) return false;
+
+      // Company filter
+      if (companyFilter && activity.company?.id !== companyFilter) return false;
+
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesTitle = activity.title.toLowerCase().includes(query);
+        const matchesDescription = activity.description?.toLowerCase().includes(query);
+        const matchesCompany = activity.company?.name.toLowerCase().includes(query);
+        const matchesPerson = activity.person
+          ? `${activity.person.firstName} ${activity.person.lastName}`.toLowerCase().includes(query)
+          : false;
+
+        if (!matchesTitle && !matchesDescription && !matchesCompany && !matchesPerson) {
+          return false;
+        }
+      }
+
+      // Date range filter
+      if (dateRangeFilter !== 'all') {
+        const activityDate = new Date(activity.createdAt);
+        const now = new Date();
+
+        if (dateRangeFilter === '7days' && activityDate < subDays(now, 7)) return false;
+        if (dateRangeFilter === '30days' && activityDate < subDays(now, 30)) return false;
+        if (dateRangeFilter === '90days' && activityDate < subDays(now, 90)) return false;
+      }
+
+      return true;
+    });
+  }, [activities, typeFilter, companyFilter, searchQuery, dateRangeFilter]);
 
   const activityTypes = [
     { value: 'all', label: 'All Activities', count: activities.length },
@@ -83,18 +132,85 @@ export default function ActivitiesPage() {
         </div>
       </Card>
 
-      {/* Type Filter */}
-      <div className="flex gap-2 flex-wrap">
-        {activityTypes.map((type) => (
-          <Button
-            key={type.value}
-            variant={typeFilter === type.value ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTypeFilter(type.value)}
-          >
-            {type.label} ({type.count})
-          </Button>
-        ))}
+      {/* Search and Filters */}
+      <div className="space-y-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <Input
+            type="text"
+            placeholder="Search activities by title, description, company, or person..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="md:max-w-md"
+          />
+          <div className="flex gap-2 items-center">
+            <label htmlFor="company-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              Company:
+            </label>
+            <select
+              id="company-filter"
+              value={companyFilter}
+              onChange={(e) => setCompanyFilter(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+            >
+              <option value="">All Companies</option>
+              {companies.map((company: any) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2 items-center">
+            <label htmlFor="date-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              Date Range:
+            </label>
+            <select
+              id="date-filter"
+              value={dateRangeFilter}
+              onChange={(e) => setDateRangeFilter(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
+            >
+              <option value="all">All Time</option>
+              <option value="7days">Last 7 Days</option>
+              <option value="30days">Last 30 Days</option>
+              <option value="90days">Last 90 Days</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Type Filter */}
+        <div className="flex gap-2 flex-wrap">
+          {activityTypes.map((type) => (
+            <Button
+              key={type.value}
+              variant={typeFilter === type.value ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTypeFilter(type.value)}
+            >
+              {type.label} ({type.count})
+            </Button>
+          ))}
+        </div>
+
+        {/* Active filters indicator */}
+        {(searchQuery || companyFilter || dateRangeFilter !== 'all') && (
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <span>Showing {filteredActivities.length} of {activities.length} activities</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearchQuery('');
+                setCompanyFilter('');
+                setDateRangeFilter('all');
+                setTypeFilter('all');
+              }}
+              className="text-blue-600 hover:text-blue-800"
+            >
+              Clear all filters
+            </Button>
+          </div>
+        )}
       </div>
 
       {loading && (

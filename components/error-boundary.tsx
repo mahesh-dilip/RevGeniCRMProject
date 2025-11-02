@@ -15,6 +15,7 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: React.ErrorInfo | null;
+}
 
 /**
  * General Error Boundary

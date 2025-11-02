@@ -22,6 +22,7 @@ export default function CompaniesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<string>('');
+  const [newStatus, setNewStatus] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
@@ -102,6 +103,7 @@ export default function CompaniesPage() {
       toast.success(`Updated ${ids.length} companies to ${status}`);
       setSelectedIds(new Set());
       setBulkAction('');
+      setNewStatus('');
     },
     onError: (error) => {
       logError('Failed to update companies:', error);
@@ -145,8 +147,10 @@ export default function CompaniesPage() {
       const ids = Array.from(selectedIds).join(',');
       router.push(`/sequences/enroll?companyIds=${ids}`);
     } else if (bulkAction === 'change-status') {
-      const newStatus = prompt('Enter new status (Lead, Qualified, Customer, Lost):');
-      if (!newStatus) return;
+      if (!newStatus) {
+        toast.error('Please select a status');
+        return;
+      }
 
       updateStatusMutation.mutate({
         ids: Array.from(selectedIds),
@@ -253,10 +257,13 @@ export default function CompaniesPage() {
                 <span className="font-semibold">
                   {selectedIds.size} {selectedIds.size === 1 ? 'company' : 'companies'} selected
                 </span>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <select
                     value={bulkAction}
-                    onChange={(e) => setBulkAction(e.target.value)}
+                    onChange={(e) => {
+                      setBulkAction(e.target.value);
+                      setNewStatus('');
+                    }}
                     className="border rounded px-3 py-1"
                   >
                     <option value="">Select action...</option>
@@ -264,10 +271,32 @@ export default function CompaniesPage() {
                     <option value="change-status">Change Status</option>
                     <option value="delete">Delete Companies</option>
                   </select>
-                  <Button onClick={handleBulkAction} disabled={!bulkAction}>
+
+                  {bulkAction === 'change-status' && (
+                    <select
+                      value={newStatus}
+                      onChange={(e) => setNewStatus(e.target.value)}
+                      className="border rounded px-3 py-1"
+                    >
+                      <option value="">Select new status...</option>
+                      <option value="Lead">Lead</option>
+                      <option value="Qualified">Qualified</option>
+                      <option value="Customer">Customer</option>
+                      <option value="Lost">Lost</option>
+                    </select>
+                  )}
+
+                  <Button
+                    onClick={handleBulkAction}
+                    disabled={!bulkAction || (bulkAction === 'change-status' && !newStatus)}
+                  >
                     Apply
                   </Button>
-                  <Button variant="outline" onClick={() => setSelectedIds(new Set())}>
+                  <Button variant="outline" onClick={() => {
+                    setSelectedIds(new Set());
+                    setBulkAction('');
+                    setNewStatus('');
+                  }}>
                     Clear Selection
                   </Button>
                 </div>

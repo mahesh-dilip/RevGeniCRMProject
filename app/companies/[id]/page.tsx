@@ -104,46 +104,142 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
       ]} />
 
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">{company.name}</h1>
-            <Badge variant={getStatusVariant(company.status)}>
-              {company.status}
-            </Badge>
-            {company.sourceType === 'ai_agent' && (
-              <Badge variant="outline">
-                🤖 AI Generated
-                {company.confidence && ` (${Math.round(company.confidence * 100)}%)`}
-              </Badge>
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-start">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">{company.name}</h1>
+              {company.sourceType === 'ai_agent' && (
+                <Badge variant="outline">
+                  🤖 AI Generated
+                  {company.confidence && ` (${Math.round(company.confidence * 100)}%)`}
+                </Badge>
+              )}
+            </div>
+            {company.website && (
+              <a
+                href={company.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline text-sm"
+              >
+                🔗 {company.website}
+              </a>
             )}
           </div>
-          {company.website && (
-            <a
-              href={company.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
-            >
-              🔗 {company.website}
-            </a>
-          )}
+
+          <div className="flex gap-2">
+            <Link href={`/companies/${params.id}/edit`}>
+              <Button variant="outline" size="sm">Edit</Button>
+            </Link>
+            <Button variant="destructive" size="sm" onClick={handleDelete}>
+              Delete
+            </Button>
+          </div>
         </div>
 
-        <div className="flex gap-2">
-          <QualifyLeadButton 
-            companyId={params.id} 
-            companyName={company.name}
-            status={company.status}
-          />
-          <Link href={`/companies/${params.id}/edit`}>
-            <Button variant="outline">Edit Company</Button>
-          </Link>
-          <Button variant="destructive" onClick={handleDelete}>
-            Delete
-          </Button>
-        </div>
+        {/* Quick Actions Bar */}
+        <Card className="bg-gray-50">
+          <CardContent className="py-3">
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/deals/new?companyId=${company.id}`}>
+                <Button variant="default" size="sm">
+                  💼 Create Deal
+                </Button>
+              </Link>
+              <Link href={`/sequences/enroll?companyId=${company.id}`}>
+                <Button variant="default" size="sm">
+                  📧 Enroll in Sequence
+                </Button>
+              </Link>
+              <Link href={`/events/new?companyId=${company.id}`}>
+                <Button variant="outline" size="sm">
+                  📅 Log Activity
+                </Button>
+              </Link>
+              <Link href={`/people/new?companyId=${company.id}`}>
+                <Button variant="outline" size="sm">
+                  👤 Add Person
+                </Button>
+              </Link>
+              <Link href={`/ai-people-finder?company=${encodeURIComponent(company.name)}`}>
+                <Button variant="outline" size="sm">
+                  🤖 Find People
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Status Pipeline */}
+      <Card className="bg-gradient-to-r from-gray-50 to-blue-50">
+        <CardHeader>
+          <CardTitle className="text-base">Company Status</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between gap-2">
+            {[
+              { value: 'Lead', label: 'Lead', color: 'bg-gray-400', icon: '🎯' },
+              { value: 'Qualified', label: 'Qualified', color: 'bg-blue-500', icon: '✅' },
+              { value: 'Customer', label: 'Customer', color: 'bg-green-500', icon: '🏆' },
+              { value: 'Lost', label: 'Lost', color: 'bg-red-500', icon: '❌' }
+            ].map((status, index, arr) => {
+              const isActive = company.status === status.value;
+              const isPast = arr.findIndex(s => s.value === company.status) > index;
+              const isFuture = arr.findIndex(s => s.value === company.status) < index;
+
+              return (
+                <div key={status.value} className="flex items-center flex-1">
+                  <button
+                    onClick={async () => {
+                      if (status.value === company.status) return;
+
+                      try {
+                        const response = await fetch(`/api/companies/${params.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ status: status.value })
+                        });
+
+                        if (!response.ok) throw new Error('Failed to update status');
+
+                        toast.success(`Status updated to ${status.value}`);
+                        fetchCompany();
+                      } catch (error) {
+                        logError('Error updating status:', error);
+                        toast.error('Failed to update status');
+                      }
+                    }}
+                    className={`flex flex-col items-center justify-center w-full px-3 py-3 rounded-lg transition-all cursor-pointer ${
+                      isActive
+                        ? `${status.color} text-white font-semibold shadow-lg scale-105`
+                        : isPast
+                        ? 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        : 'bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:shadow-md'
+                    }`}
+                  >
+                    <span className="text-2xl mb-1">{status.icon}</span>
+                    <span className="text-sm font-medium">{status.label}</span>
+                    {isActive && (
+                      <span className="text-xs mt-1 opacity-90">Current</span>
+                    )}
+                  </button>
+
+                  {index < arr.length - 1 && (
+                    <div className="flex-shrink-0 w-8 mx-1">
+                      <div className={`h-1 ${isPast ? status.color : 'bg-gray-300'} transition-all`} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-gray-600 mt-3 text-center">
+            Click on any status to update the company's stage
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
@@ -253,38 +349,6 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Link href={`/people/new?companyId=${company.id}`}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      👤 Add Person
-                    </Button>
-                  </Link>
-                  <Link href={`/ai-people-finder?company=${encodeURIComponent(company.name)}`}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      🤖 Find People at {company.name}
-                    </Button>
-                  </Link>
-                  <Link href={`/deals/new?companyId=${company.id}`}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      💼 Create Deal
-                    </Button>
-                  </Link>
-                  <Link href={`/sequences/enroll?companyId=${company.id}`}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      📧 Enroll in Sequence
-                    </Button>
-                  </Link>
-                  <Link href={`/events/new?companyId=${company.id}`}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      📅 Log Activity
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
             </div>
           </div>
         )}

@@ -3,11 +3,12 @@
 
 import { logError } from '@/lib/logging';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { format, isAfter, isBefore, startOfDay } from 'date-fns';
 import { toast } from 'sonner';
@@ -15,6 +16,9 @@ import { toast } from 'sonner';
 export default function TasksPage() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('pending');
+  const [priorityFilter, setPriorityFilter] = useState<string>('');
+  const [companyFilter, setCompanyFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch tasks with React Query
   const { data: tasks = [], isLoading: loading } = useQuery({
@@ -57,11 +61,49 @@ export default function TasksPage() {
     toggleTaskMutation.mutate({ taskId, completed: currentStatus });
   };
 
-  const filteredTasks = tasks.filter((task: any) => {
-    if (statusFilter === 'pending') return !task.completed;
-    if (statusFilter === 'completed') return task.completed;
-    return true;
-  });
+  // Get unique companies for filter dropdown
+  const companies = useMemo(() => {
+    const uniqueCompanies = new Map();
+    tasks.forEach((task: any) => {
+      if (task.company) {
+        uniqueCompanies.set(task.company.id, task.company.name);
+      }
+    });
+    return Array.from(uniqueCompanies.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [tasks]);
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task: any) => {
+      // Status filter
+      if (statusFilter === 'pending' && task.completed) return false;
+      if (statusFilter === 'completed' && !task.completed) return false;
+
+      // Priority filter
+      if (priorityFilter && task.priority !== priorityFilter) return false;
+
+      // Company filter
+      if (companyFilter && task.company?.id !== companyFilter) return false;
+
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesTitle = task.title.toLowerCase().includes(query);
+        const matchesDescription = task.description?.toLowerCase().includes(query);
+        const matchesCompany = task.company?.name.toLowerCase().includes(query);
+        const matchesPerson = task.person
+          ? `${task.person.firstName} ${task.person.lastName}`.toLowerCase().includes(query)
+          : false;
+
+        if (!matchesTitle && !matchesDescription && !matchesCompany && !matchesPerson) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [tasks, statusFilter, priorityFilter, companyFilter, searchQuery]);
 
   const now = startOfDay(new Date());
   const overdueTasks = filteredTasks.filter((t: any) =>
@@ -105,29 +147,95 @@ export default function TasksPage() {
         </div>
       </Card>
 
-      {/* Status Filter */}
-      <div className="flex gap-2">
-        <Button
-          variant={statusFilter === 'pending' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setStatusFilter('pending')}
-        >
-          Pending ({tasks.filter((t: any) => !t.completed).length})
-        </Button>
-        <Button
-          variant={statusFilter === 'completed' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setStatusFilter('completed')}
-        >
-          Completed ({tasks.filter((t: any) => t.completed).length})
-        </Button>
-        <Button
-          variant={statusFilter === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setStatusFilter('all')}
-        >
-          All ({tasks.length})
-        </Button>
+      {/* Search and Filters */}
+      <div className="space-y-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <Input
+            type="text"
+            placeholder="Search tasks by title, description, company, or person..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="md:max-w-md"
+          />
+          <div className="flex gap-2 items-center">
+            <label htmlFor="priority-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              Priority:
+            </label>
+            <select
+              id="priority-filter"
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
+            >
+              <option value="">All Priorities</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div className="flex gap-2 items-center">
+            <label htmlFor="company-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              Company:
+            </label>
+            <select
+              id="company-filter"
+              value={companyFilter}
+              onChange={(e) => setCompanyFilter(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+            >
+              <option value="">All Companies</option>
+              {companies.map((company: any) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex gap-2">
+          <Button
+            variant={statusFilter === 'pending' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('pending')}
+          >
+            Pending ({tasks.filter((t: any) => !t.completed).length})
+          </Button>
+          <Button
+            variant={statusFilter === 'completed' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('completed')}
+          >
+            Completed ({tasks.filter((t: any) => t.completed).length})
+          </Button>
+          <Button
+            variant={statusFilter === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('all')}
+          >
+            All ({tasks.length})
+          </Button>
+        </div>
+
+        {/* Active filters indicator */}
+        {(searchQuery || priorityFilter || companyFilter) && (
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <span>Showing {filteredTasks.length} of {tasks.length} tasks</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearchQuery('');
+                setPriorityFilter('');
+                setCompanyFilter('');
+              }}
+              className="text-blue-600 hover:text-blue-800"
+            >
+              Clear all filters
+            </Button>
+          </div>
+        )}
       </div>
 
       {loading && (

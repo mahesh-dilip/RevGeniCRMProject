@@ -2,9 +2,25 @@
 
 An intelligent CRM system with AI-powered lead discovery, HubSpot-inspired features, pipeline management, and automated email sequences built for the RevGeni.ai technical assessment.
 
-**Latest Update**: Enhanced UI with professional table views, detail pages for all entities, improved deal management, and comprehensive seed data.
+**Latest Update**: Major UX/UI overhaul with analytics dashboard, advanced filtering, pagination, bulk operations, and improved workflows throughout the application.
 
-## 🆕 Recent Enhancements (October 2024)
+## 🆕 Recent Enhancements (November 2024)
+
+### UX/UI Overhaul
+- ✅ **Analytics Dashboard** - Comprehensive metrics page with pipeline value, win rate, conversion rates, and 6-month growth trends
+- ✅ **Universal Pagination** - All table pages (Companies, People, Deals, etc.) now have 20-items-per-page pagination
+- ✅ **Advanced Filtering** - Search, company filter, and date range filter on Activities page; search, company, and priority filter on Tasks page
+- ✅ **Dropdown Filters** - All filter buttons converted to accessible dropdown selectors for better UX
+- ✅ **Bulk Operations** - Multi-select companies with bulk delete, bulk status change, and bulk sequence enrollment
+- ✅ **Status Workflow** - Streamlined status change with dropdown selector instead of prompts
+- ✅ **Visual Status Pipeline** - Interactive status stages on company detail page for one-click status updates
+- ✅ **Activity Types Split** - Due dates and priority only show for Tasks, not for historical activities (calls, emails, meetings, notes)
+- ✅ **Sequence Enrollment Search** - Search and filter companies when enrolling multiple in sequences
+- ✅ **Quick Actions Repositioned** - Company detail page quick actions moved to prominent header bar for instant access
+- ✅ **Error Tracking** - Integrated Sentry for production error monitoring
+- ✅ **Loading States** - Professional loading indicators throughout the application
+
+## Recent Enhancements (October 2024)
 
 ### UI/UX Improvements
 - ✅ **Professional Table Views** - All list pages (Companies, People, Events, Sequences) now use HubSpot-style tables
@@ -84,6 +100,15 @@ An intelligent CRM system with AI-powered lead discovery, HubSpot-inspired featu
 - **Quick actions** for common workflows
 - **Activity overview** at a glance
 - **Performance indicators**: Won deals, active pipeline
+
+### 8. Analytics Dashboard 📈
+- **Pipeline metrics**: Total value, win rate, average deal value
+- **Conversion tracking**: Lead→Customer, Company→Deal rates
+- **Sequence performance**: Enrollment metrics and success rates
+- **Growth trends**: 6-month historical data visualization
+- **Deal breakdown**: Detailed stage-by-stage analysis
+- **Lead sources**: AI vs Manual lead generation comparison
+- **Visual charts**: Pipeline, win rate circle, lead sources, and trend graphs
 
 ## 🏗️ Tech Stack
 
@@ -392,40 +417,82 @@ To test the application:
 1. **Dashboard**:
    - Visit homepage and verify metrics load correctly
    - Check that quick actions navigate to correct pages
+   - Verify upcoming tasks are limited to 5
+   - Click "View All" to navigate to tasks page
 
-2. **AI Lead Generation**:
+2. **Analytics Dashboard** (NEW):
+   - Navigate to Analytics from dashboard or navigation
+   - Verify all 7 metric cards display correct values
+   - Check that charts render properly (Pipeline, Win Rate, Lead Sources, Growth Trend)
+   - Verify deal breakdown table shows correct data
+   - Test responsive design on different screen sizes
+
+3. **Bulk Operations** (NEW):
+   - Go to Companies page
+   - Select multiple companies using checkboxes
+   - Try bulk delete (with confirmation)
+   - Try bulk status change using dropdown
+   - Try bulk sequence enrollment
+   - Verify "Select All" and "Clear Selection" work correctly
+
+4. **AI Lead Generation**:
    - Try: "SaaS companies in London with 50-200 employees"
    - Review the results page
    - Deselect some companies, add others
    - Verify selected companies are created with confidence scores
    - Try adding the same companies again to test duplicate detection
 
-3. **Company Management**:
+5. **Company Management** (UPDATED):
    - View company detail page
+   - Test new quick actions bar in header (prominently placed)
+   - Use visual status pipeline to change company status
    - Navigate between tabs (Overview, People, Deals, Activity)
-   - Add a person from the People tab
-   - Add an event from quick actions
+   - Verify pagination works (20 items per page)
+   - Test search functionality across name, industry, description
+   - Use status dropdown filter to filter companies
 
-4. **People Management**:
+6. **People Management** (UPDATED):
    - Navigate to People page
-   - Search for a contact by name or email
+   - Test pagination (20 items per page)
+   - Search for a contact by name, email, or company
+   - Use company dropdown filter
    - Add a new person
    - Verify they appear on the company detail page
 
-5. **Events & Activities**:
-   - Create different event types (call, email, meeting, task, note)
-   - Filter by status (pending/completed)
-   - Filter by type
-   - Mark a task as complete
-   - Verify events appear on company timeline
+7. **Activities Page** (NEW FILTERS):
+   - Test search by title, description, company, or person
+   - Use company dropdown filter
+   - Use date range filter (Last 7/30/90 days, All Time)
+   - Filter by activity type (Call, Email, Meeting, Note)
+   - Try "Clear all filters" button
+   - Verify "Showing X of Y activities" counter updates
 
-6. **Pipeline Management**:
+8. **Tasks Page** (NEW FILTERS):
+   - Test search by title, description, company, or person
+   - Use priority dropdown filter (High, Medium, Low, All)
+   - Use company dropdown filter
+   - Filter by status (Pending, Completed, All)
+   - Try "Clear all filters" button
+   - Verify task counts update correctly
+   - Mark a task as complete
+   - Verify activity types (task vs activity) work correctly - tasks have due dates, activities don't
+
+9. **Sequence Enrollment** (NEW):
+   - Select multiple companies from Companies page
+   - Click "Enroll in Sequence" bulk action
+   - Test search functionality to filter companies
+   - Use checkboxes to select/deselect companies
+   - Test "Select All" functionality
+   - Verify enrollment count updates correctly
+   - Complete enrollment and verify success
+
+10. **Pipeline Management**:
    - Create a deal from a company
    - Move deal to "Demo" stage
    - Verify automated task creation
    - Check that events appear on company activity tab
 
-7. **Email Sequences**:
+11. **Email Sequences**:
    - Create a multi-step sequence
    - Add 3-4 email steps with delays
    - Configure automation settings
