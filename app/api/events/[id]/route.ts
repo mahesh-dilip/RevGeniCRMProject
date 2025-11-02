@@ -6,6 +6,8 @@ import { logError } from '@/lib/logging';
 
 import { getAuthContext, requireRole } from '@/lib/auth/context';
 
+
+export const dynamic = 'force-dynamic';
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }

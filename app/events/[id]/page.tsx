@@ -8,6 +8,8 @@ import { format } from 'date-fns';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { ToggleCompleteButton } from './components/ToggleCompleteButton';
 
+
+export const dynamic = 'force-dynamic';
 const EVENT_ICONS: Record<string, string> = {
   call: '📞',
   email: '📧',

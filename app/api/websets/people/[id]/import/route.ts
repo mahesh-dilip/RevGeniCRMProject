@@ -6,6 +6,8 @@ import { ExaWebsetsService } from '@/lib/ai/exa-websets';
 import { checkForDuplicate } from '@/lib/security/duplicate-detection';
 import { z } from 'zod';
 
+
+export const dynamic = 'force-dynamic';
 const importSchema = z.object({
   selectedIds: z.array(z.string()).min(1, 'At least one person must be selected'),
 });

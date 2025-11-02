@@ -5,6 +5,8 @@ import { getAuthContext } from '@/lib/auth/context';
 import { ExaWebsetsService } from '@/lib/ai/exa-websets';
 import { checkForDuplicate } from '@/lib/security/duplicate-detection';
 
+
+export const dynamic = 'force-dynamic';
 /**
  * GET /api/websets/companies/[id]/results
  * Fetch and import results from a completed company webset

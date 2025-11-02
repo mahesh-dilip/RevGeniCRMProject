@@ -27,7 +27,18 @@
       "Bash(DATABASE_URL=\"$DIRECT_URL\" npx tsx:*)",
       "Bash(npm run db:boost:*)",
       "Bash(npx prisma migrate:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(vercel --version:*)",
+      "Bash(vercel:*)",
+      "WebFetch(domain:vercel.com)",
+      "Bash(for file in app/deals/[id]/page.tsx app/sequences/[id]/page.tsx app/people/[id]/page.tsx app/events/[id]/page.tsx app/page.tsx app/analytics/page.tsx)",
+      "Bash(do)",
+      "Bash(if ! grep -q \"export const dynamic\" \"$file\")",
+      "Bash(then)",
+      "Bash(echo:*)",
+      "Bash(else)",
+      "Bash(fi)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

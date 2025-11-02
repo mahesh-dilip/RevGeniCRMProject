@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { logError, logWarning, logInfo } from '@/lib/logging';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Test route for Sentry integration
  * This route demonstrates different error scenarios

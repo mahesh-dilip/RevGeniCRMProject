@@ -4,6 +4,8 @@ import { logError, logInfo, logWarning } from '@/lib/logging';
 import { getAuthContext } from '@/lib/auth/context';
 import { ExaWebsetsService } from '@/lib/ai/exa-websets';
 
+
+export const dynamic = 'force-dynamic';
 /**
  * GET /api/websets/people/[id]/results
  * Fetch and import results from a completed people webset

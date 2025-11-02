@@ -4,6 +4,8 @@ import { logError, logInfo } from '@/lib/logging';
 import { getAuthContext } from '@/lib/auth/context';
 import { ExaWebsetsService } from '@/lib/ai/exa-websets';
 
+
+export const dynamic = 'force-dynamic';
 /**
  * Map Exa WebsetStatus to our internal status
  * Exa uses: idle, pending, running, paused

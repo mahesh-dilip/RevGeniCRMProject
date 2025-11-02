@@ -10,6 +10,8 @@ import { TaskCard } from '@/components/dashboard/TaskCard';
 import { SmartSuggestions } from '@/components/dashboard/SmartSuggestions';
 import { DealCharts } from '@/components/dashboard/DealCharts';
 
+
+export const dynamic = 'force-dynamic';
 async function DashboardMetrics() {
   try {
     const [companiesCount, dealsData, tasksData] = await Promise.all([

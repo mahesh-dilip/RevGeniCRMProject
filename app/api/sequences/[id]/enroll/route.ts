@@ -8,6 +8,8 @@ import { EnrollSequenceSchema } from '@/lib/validations/sequences';
 import { rateLimit, getClientIdentifier } from '@/lib/middleware/rate-limit-memory';
 import { getAuthContext, requireRole } from '@/lib/auth/context';
 
+
+export const dynamic = 'force-dynamic';
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }

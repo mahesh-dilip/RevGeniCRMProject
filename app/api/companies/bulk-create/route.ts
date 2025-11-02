@@ -8,6 +8,8 @@ import { BulkCreateCompaniesSchema } from '@/lib/validations/companies';
 import { rateLimit, getClientIdentifier } from '@/lib/middleware/rate-limit-memory';
 import { getAuthContext, requireRole } from '@/lib/auth/context';
 
+
+export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
     // Get authenticated user context and check permissions

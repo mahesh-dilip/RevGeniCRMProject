@@ -11,6 +11,8 @@ import { DEAL_STAGES } from '@/lib/utils/constants';
 import { StageUpdater } from './components/StageUpdater';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 
+
+export const dynamic = 'force-dynamic';
 export default async function DealDetailPage({
   params
 }: {

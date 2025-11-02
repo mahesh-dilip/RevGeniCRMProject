@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 
+
+export const dynamic = 'force-dynamic';
 export default async function SequenceDetailPage({
   params
 }: {

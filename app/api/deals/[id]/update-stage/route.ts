@@ -7,6 +7,8 @@ import { logError } from '@/lib/logging';
 import { UpdateDealStageSchema } from '@/lib/validations/deals';
 import { getAuthContext } from '@/lib/auth/context';
 
+
+export const dynamic = 'force-dynamic';
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }

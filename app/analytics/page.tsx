@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { DEAL_STAGES } from '@/lib/utils/constants';
 
+export const dynamic = 'force-dynamic';
+
 async function AnalyticsContent() {
   const [deals, companies, events, sequences] = await Promise.all([
     prisma.deal.findMany({

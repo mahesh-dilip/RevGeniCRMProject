@@ -7,6 +7,8 @@ import { logError } from '@/lib/logging';
 import { CreateDealSchema } from '@/lib/validations/deals';
 import { getAuthContext } from '@/lib/auth/context';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     // Get authenticated user context

@@ -4,6 +4,8 @@ import { getAuthContext } from '@/lib/auth/context';
 
 import { logError } from '@/lib/logging';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }

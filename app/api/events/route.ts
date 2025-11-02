@@ -7,6 +7,8 @@ import { logError } from '@/lib/logging';
 import { CreateEventSchema } from '@/lib/validations/events';
 import { getAuthContext } from '@/lib/auth/context';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     // Get authenticated user context

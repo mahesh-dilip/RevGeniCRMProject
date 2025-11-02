@@ -7,6 +7,8 @@ import { getAuthContext, requireRole } from '@/lib/auth/context';
 import { rateLimit, getClientIdentifier } from '@/lib/middleware/rate-limit-memory';
 import { ExaWebsetsService } from '@/lib/ai/exa-websets';
 
+
+export const dynamic = 'force-dynamic';
 /**
  * POST /api/websets/companies/create
  * Create a new company discovery webset using Exa AI
