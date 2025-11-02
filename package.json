@@ -10,7 +10,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "db:boost": "npx tsx scripts/boost-demo-data.ts"
+    "db:boost": "npx tsx scripts/boost-demo-data.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.3",
