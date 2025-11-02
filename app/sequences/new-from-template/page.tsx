@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { logError } from '@/lib/logging';
+import { AILoading } from '@/components/ui/ai-loading';
 
 type Step = 'template' | 'profile' | 'preview' | 'edit' | 'saving';
 
@@ -280,55 +281,65 @@ export default function NewSequenceFromTemplatePage() {
 
       {/* Step 3: Select Sample Company */}
       {currentStep === 'preview' && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Select Sample Company for Preview</h2>
-          <p className="text-sm text-gray-600">
-            Choose a company from your CRM to see how AI will personalize emails. This helps you review
-            the quality before saving the sequence.
-          </p>
-
-          <div>
-            <Label htmlFor="sampleCompany">Sample Company *</Label>
-            <select
-              id="sampleCompany"
-              value={sampleCompanyId}
-              onChange={(e) => setSelectedSampleCompanyId(e.target.value)}
-              className="w-full border rounded p-2 mb-4"
-            >
-              <option value="">Select a company...</option>
-              {companies.slice(0, 20).map((company: any) => (
-                <option key={company.id} value={company.id}>
-                  {company.name} {company.industry ? `- ${company.industry}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <Label htmlFor="customInstructions">Custom Instructions (Optional)</Label>
-            <Textarea
-              id="customInstructions"
-              value={customInstructions}
-              onChange={(e) => setCustomInstructions(e.target.value)}
-              placeholder="Add any specific instructions for AI generation (e.g., 'Focus on cost savings' or 'Mention upcoming webinar')"
-              rows={3}
+        <>
+          {generateMutation.isPending ? (
+            <AILoading
+              message="🤖 AI is crafting personalized emails..."
+              estimatedSeconds={15}
+              showProgress={true}
             />
-          </div>
+          ) : (
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Select Sample Company for Preview</h2>
+              <p className="text-sm text-gray-600">
+                Choose a company from your CRM to see how AI will personalize emails. This helps you review
+                the quality before saving the sequence.
+              </p>
 
-          {selectedTemplate && (
-            <Card className="p-4 bg-gray-50">
-              <h3 className="font-semibold mb-2">Sequence Structure:</h3>
-              <ul className="space-y-2">
-                {selectedTemplate.emails.map((email: any, index: number) => (
-                  <li key={index} className="text-sm">
-                    <span className="font-medium">Email {email.stepNumber}</span>
-                    {' '}(Day {email.delayDays}): {email.purpose}
-                  </li>
-                ))}
-              </ul>
-            </Card>
+              <div>
+                <Label htmlFor="sampleCompany">Sample Company *</Label>
+                <select
+                  id="sampleCompany"
+                  value={sampleCompanyId}
+                  onChange={(e) => setSelectedSampleCompanyId(e.target.value)}
+                  className="w-full border rounded p-2 mb-4"
+                >
+                  <option value="">Select a company...</option>
+                  {companies.slice(0, 20).map((company: any) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name} {company.industry ? `- ${company.industry}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label htmlFor="customInstructions">Custom Instructions (Optional)</Label>
+                <Textarea
+                  id="customInstructions"
+                  value={customInstructions}
+                  onChange={(e) => setCustomInstructions(e.target.value)}
+                  placeholder="Add any specific instructions for AI generation (e.g., 'Focus on cost savings' or 'Mention upcoming webinar')"
+                  rows={3}
+                />
+              </div>
+
+              {selectedTemplate && (
+                <Card className="p-4 bg-gray-50">
+                  <h3 className="font-semibold mb-2">Sequence Structure:</h3>
+                  <ul className="space-y-2">
+                    {selectedTemplate.emails.map((email: any, index: number) => (
+                      <li key={index} className="text-sm">
+                        <span className="font-medium">Email {email.stepNumber}</span>
+                        {' '}(Day {email.delayDays}): {email.purpose}
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
 
       {/* Step 4: Edit Generated Emails */}

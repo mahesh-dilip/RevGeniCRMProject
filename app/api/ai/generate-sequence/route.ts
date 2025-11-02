@@ -4,6 +4,7 @@ import { getAuthContext } from '@/lib/auth/context';
 import { logError } from '@/lib/logging';
 import { generateEmailSequence } from '@/lib/ai/sequence-generator';
 import { getTemplateById } from '@/lib/constants/sequence-templates';
+import { trackAIGeneration, trackAPIRoute, setUserContext } from '@/lib/sentry-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +22,19 @@ interface GenerateSequenceRequest {
  */
 export async function POST(request: Request) {
   try {
-    const { tenantId } = await getAuthContext();
+    const authContext = await getAuthContext();
+    const { tenantId, userId, email } = authContext;
+
+    // Set user context for Sentry
+    setUserContext({ id: userId, email, tenantId });
+
     const body: GenerateSequenceRequest = await request.json();
+
+    // Track API route access
+    trackAPIRoute('/api/ai/generate-sequence', 'POST', {
+      templateId: body.templateId,
+      hasCustomInstructions: !!body.customInstructions,
+    });
 
     const { templateId, profileId, companyId, personId, customInstructions } = body;
 
@@ -138,14 +150,27 @@ export async function POST(request: Request) {
         }
       : undefined;
 
-    // Generate the email sequence using AI
-    const generatedEmails = await generateEmailSequence({
-      userProfile,
-      template,
-      companyContext,
-      personContext,
-      customInstructions,
-    });
+    // Generate the email sequence using AI with tracking
+    const generatedEmails = await trackAIGeneration(
+      'generate-email-sequence',
+      {
+        templateId: template.id,
+        templateName: template.name,
+        emailCount: template.emailCount,
+        companyName: company.name,
+        companyIndustry: company.industry,
+        hasPerson: !!person,
+        hasCustomInstructions: !!customInstructions,
+      },
+      () =>
+        generateEmailSequence({
+          userProfile,
+          template,
+          companyContext,
+          personContext,
+          customInstructions,
+        })
+    );
 
     return NextResponse.json({
       success: true,

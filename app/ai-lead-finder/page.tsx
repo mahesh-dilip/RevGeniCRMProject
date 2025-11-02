@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { AILoading } from '@/components/ui/ai-loading';
 import {
   useCompanyWebsetWorkflow,
   useCompanyWebsetStatus,
@@ -259,16 +260,11 @@ export default function AILeadFinderPage() {
     if (isLoadingPreview || !previewData) {
       return (
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold">⏳ Loading Results...</h1>
-              <p className="text-gray-600">Fetching discovered companies...</p>
-            </div>
-          </div>
-          <Card className="p-8 text-center">
-            <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-600">Processing discovered companies...</p>
-          </Card>
+          <AILoading
+            message="🔍 Discovering and enriching companies..."
+            estimatedSeconds={10}
+            showProgress={true}
+          />
         </div>
       );
     }
