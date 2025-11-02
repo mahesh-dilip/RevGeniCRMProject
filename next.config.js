@@ -8,6 +8,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  experimental: {
+    // Force all routes to be dynamic to avoid build-time data fetching issues
+    isrMemoryCacheSize: 0,
+  },
 };
 
 // Only enable Sentry if all required env vars are present
