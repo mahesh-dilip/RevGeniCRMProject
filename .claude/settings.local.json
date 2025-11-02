@@ -26,7 +26,8 @@
       "Bash(npx tsx:*)",
       "Bash(DATABASE_URL=\"$DIRECT_URL\" npx tsx:*)",
       "Bash(npm run db:boost:*)",
-      "Bash(npx prisma migrate:*)"
+      "Bash(npx prisma migrate:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []

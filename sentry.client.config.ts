@@ -9,15 +9,14 @@ Sentry.init({
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
 
-  // Environment detection
-  environment: process.env.NODE_ENV,
+  // Replays are useful for debugging
+  replaysOnErrorSampleRate: 1.0,
+  replaysSessionSampleRate: 0.1,
 
-  // Filter out sensitive data
-  beforeSend(event, hint) {
-    // Don't send events in development unless explicitly enabled
-    if (process.env.NODE_ENV === 'development' && !process.env.SENTRY_DEV_ENABLED) {
-      return null;
-    }
-    return event;
-  },
+  integrations: [
+    Sentry.replayIntegration({
+      maskAllText: true,
+      blockAllMedia: true,
+    }),
+  ],
 });
