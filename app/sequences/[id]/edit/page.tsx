@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { toast } from 'sonner';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 
@@ -307,16 +308,17 @@ export default function EditSequencePage({ params }: { params: { id: string } })
 
                 <div>
                   <Label htmlFor={`body-${index}`}>Email Body *</Label>
-                  <Textarea
-                    id={`body-${index}`}
-                    placeholder="Hi {{firstName}},&#10;&#10;I noticed that..."
+                  <RichTextEditor
                     value={step.body}
-                    onChange={(e) => updateStep(index, 'body', e.target.value)}
-                    rows={6}
-                    required
+                    onChange={(value) => updateStep(index, 'body', value)}
+                    placeholder="Hi {{firstName}},&#10;&#10;I noticed that..."
+                    minHeight={250}
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Available variables: {'{{firstName}}, {{lastName}}, {{company}}, {{website}}'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Use the formatting toolbar to add bold, italic, links, and lists to your email.
                   </p>
                 </div>
               </div>

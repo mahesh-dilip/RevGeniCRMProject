@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -414,15 +415,15 @@ export default function NewSequenceFromTemplatePage() {
 
                   <div>
                     <Label>Email Body</Label>
-                    <Textarea
+                    <RichTextEditor
                       value={email.body}
-                      onChange={(e) => {
+                      onChange={(value) => {
                         const newEmails = [...editableEmails];
-                        newEmails[index].body = e.target.value;
+                        newEmails[index].body = value;
                         setEditableEmails(newEmails);
                       }}
-                      rows={12}
-                      className="font-mono text-sm"
+                      minHeight={300}
+                      placeholder="Email content..."
                     />
                   </div>
                 </div>
