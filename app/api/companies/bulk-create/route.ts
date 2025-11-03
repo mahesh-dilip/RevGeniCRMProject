@@ -12,9 +12,9 @@ import { getAuthContext, requireRole } from '@/lib/auth/context';
 export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
-    // Get authenticated user context and check permissions
-    const { tenantId, role } = await getAuthContext();
-    requireRole(role, 'MANAGER'); // Bulk operations require MANAGER role or higher
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+    // Demo: Allow all authenticated users to bulk create companies
 
     // Rate limiting - Bulk operations can flood the database
     const identifier = getClientIdentifier(request);

@@ -21,9 +21,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: Request) {
   try {
-    // Get authenticated user context and check permissions
-    const { tenantId, userId, role } = await getAuthContext();
-    requireRole(role, 'MANAGER'); // Webset operations require MANAGER role or higher
+    // Get authenticated user context
+    const { tenantId, userId } = await getAuthContext();
+    // Demo: Allow all authenticated users to use websets
 
     // Rate limiting - Webset operations are expensive (Exa API)
     const identifier = getClientIdentifier(request);

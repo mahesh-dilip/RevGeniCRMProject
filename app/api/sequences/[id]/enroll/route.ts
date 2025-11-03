@@ -15,9 +15,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Get authenticated user context and check permissions
-    const { tenantId, role } = await getAuthContext();
-    requireRole(role, 'MANAGER'); // Enrolling in sequences requires MANAGER role or higher
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+    // Demo: Allow all authenticated users to enroll in sequences
 
     // Rate limiting - Email sequence enrollment can trigger many scheduled emails
     const identifier = getClientIdentifier(request);

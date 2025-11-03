@@ -13,9 +13,9 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    // Get authenticated user context and check permissions
-    const { tenantId, role } = await getAuthContext();
-    requireRole(role, 'MANAGER'); // AI operations require MANAGER role or higher
+    // Get authenticated user context
+    const { tenantId } = await getAuthContext();
+    // Demo: Allow all authenticated users to use AI lead finder
 
     // Rate limiting - AI endpoints are expensive (OpenAI + Exa API)
     const identifier = getClientIdentifier(request);
