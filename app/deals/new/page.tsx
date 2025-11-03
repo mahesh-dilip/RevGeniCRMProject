@@ -110,12 +110,15 @@ function NewDealForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    createDealMutation.mutate({
+    // Ensure empty strings are converted to null for validation
+    const submitData = {
       ...formData,
       value: formData.value ? parseFloat(formData.value) : null,
       closeDate: formData.closeDate ? new Date(formData.closeDate).toISOString() : null,
-      primaryContactId: formData.primaryContactId || null
-    });
+      primaryContactId: formData.primaryContactId && formData.primaryContactId.trim() !== '' ? formData.primaryContactId : null
+    };
+
+    createDealMutation.mutate(submitData);
   };
 
   return (
@@ -168,12 +171,13 @@ function NewDealForm() {
                     id="primaryContactId"
                     value={formData.primaryContactId}
                     onChange={(e) => setFormData({ ...formData, primaryContactId: e.target.value })}
-                    className="flex-1 border rounded p-2"
+                    className="flex-1 border rounded p-2 max-w-full overflow-hidden text-ellipsis"
+                    style={{ maxWidth: 'calc(100% - 140px)' }}
                   >
                     <option value="">Select primary contact...</option>
                     {selectedCompanyPeople.map((person) => (
-                      <option key={person.id} value={person.id}>
-                        {person.firstName} {person.lastName} {person.title ? `- ${person.title}` : ''}
+                      <option key={person.id} value={person.id} title={`${person.firstName} ${person.lastName}${person.title ? ` - ${person.title}` : ''}`}>
+                        {person.firstName} {person.lastName}{person.title ? ` - ${person.title.length > 30 ? person.title.substring(0, 30) + '...' : person.title}` : ''}
                       </option>
                     ))}
                   </select>
@@ -181,6 +185,7 @@ function NewDealForm() {
                     type="button"
                     variant="outline"
                     onClick={() => setShowInlinePersonForm(true)}
+                    className="whitespace-nowrap"
                   >
                     + New Contact
                   </Button>

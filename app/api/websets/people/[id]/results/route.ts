@@ -104,9 +104,6 @@ export async function GET(
     }
 
     // Import results as Person records
-    const createdPeople = [];
-    let skippedDuplicates = 0;
-    let skippedNoLinkedIn = 0;
     const criteria = webset.criteria as any;
 
     // Log initial stats
@@ -115,6 +112,10 @@ export async function GET(
       totalItems: items.length,
       tenantId,
     });
+
+    // OPTIMIZATION: Extract all person data first, then batch database operations
+    const extractedPeople = [];
+    let skippedNoLinkedIn = 0;
 
     for (let index = 0; index < items.length; index++) {
       const item = items[index];
@@ -206,45 +207,20 @@ export async function GET(
 
         // Skip if no LinkedIn URL (critical for deduplication)
         if (!personData.linkedin) {
-          logWarning('Skipping person without LinkedIn URL', {
-            personName: `${personData.firstName} ${personData.lastName}`,
-            hasEmail: !!personData.email,
-            hasPhone: !!personData.phone,
-            hasTitle: !!personData.title,
-            enrichmentCount: enrichments.length,
-            enrichmentFormats: enrichments.map((e: any) => e.format),
-            urlEnrichments: enrichments
-              .filter((e: any) => e.format === 'url')
-              .map((e: any) => e.result?.[0]),
-            personInfoKeys: personInfo ? Object.keys(personInfo) : [],
-            itemIndex: index + 1,
-            totalItems: items.length,
-          });
+          if (index < 3) {
+            logWarning('Skipping person without LinkedIn URL', {
+              personName: `${personData.firstName} ${personData.lastName}`,
+              hasEmail: !!personData.email,
+              hasPhone: !!personData.phone,
+              hasTitle: !!personData.title,
+              itemIndex: index + 1,
+            });
+          }
           skippedNoLinkedIn++;
           continue;
         }
 
-        // Check for duplicate by LinkedIn URL
-        const existingPerson = await prisma.person.findFirst({
-          where: {
-            linkedin: personData.linkedin,
-            tenantId,
-          },
-        });
-
-        if (existingPerson) {
-          logInfo('Skipping duplicate person from webset', {
-            linkedin: personData.linkedin,
-            name: `${personData.firstName} ${personData.lastName}`,
-          });
-          skippedDuplicates++;
-          continue;
-        }
-
-        // Find or create company for this person
-        let company = null;
-
-        // Ensure companyName is a string (handle edge cases where it might still be an object)
+        // Normalize company name to string
         let companyNameString: string | null = null;
         if (personData.companyName) {
           if (typeof personData.companyName === 'string') {
@@ -254,85 +230,123 @@ export async function GET(
           }
         }
 
-        if (companyNameString) {
-          // Try to find existing company
-          company = await prisma.company.findFirst({
-            where: {
-              tenantId,
-              name: {
-                contains: companyNameString,
-                mode: 'insensitive',
-              },
-            },
-          });
-
-          // Create company if it doesn't exist
-          if (!company) {
-            company = await prisma.company.create({
-              data: {
-                tenantId,
-                name: companyNameString,
-                status: 'Lead',
-                sourceType: 'exa_webset',
-                sourceQuery: webset.query,
-              },
-            });
-
-            logInfo('Created company for person', {
-              companyName: companyNameString,
-              companyId: company.id,
-            });
-          }
-        } else {
-          // If no company name, create a placeholder company
-          company = await prisma.company.create({
-            data: {
-              tenantId,
-              name: `Company for ${personData.firstName} ${personData.lastName}`,
-              status: 'Lead',
-              sourceType: 'exa_webset',
-              sourceQuery: webset.query,
-            },
-          });
-        }
-
-        // Create person record
-        const person = await prisma.person.create({
-          data: {
-            tenantId,
-            websetId: webset.id,
-            companyId: company.id,
-            firstName: personData.firstName,
-            lastName: personData.lastName,
-            email: personData.email,
-            phone: personData.phone,
-            title: personData.title,
-            linkedin: personData.linkedin,
-          },
-          include: {
-            company: true,
-          },
+        // Add to extracted people array
+        extractedPeople.push({
+          firstName: personData.firstName,
+          lastName: personData.lastName,
+          email: personData.email,
+          phone: personData.phone,
+          title: personData.title,
+          linkedin: personData.linkedin,
+          companyName: companyNameString,
         });
 
-        createdPeople.push(person);
-        
-        // Log successful import for first few
-        if (createdPeople.length <= 3) {
-          logInfo('Successfully imported person from webset', {
+        // Log first few extractions
+        if (extractedPeople.length <= 3) {
+          logInfo('Successfully extracted person data', {
             personName: `${personData.firstName} ${personData.lastName}`,
             linkedin: personData.linkedin,
-            company: personData.companyName,
+            company: companyNameString,
             itemIndex: index + 1,
           });
         }
       } catch (itemError) {
-        logError('Error importing person from webset', itemError, {
+        logError('Error extracting person from webset', itemError, {
           websetId: webset.id,
           itemIndex: index + 1,
           itemPreview: JSON.stringify(item).substring(0, 200),
         });
         // Continue processing other items
       }
+    }
+
+    // OPTIMIZATION: Now do batch database operations
+    logInfo('Finished extraction, starting batch operations', {
+      extractedCount: extractedPeople.length,
+      skippedNoLinkedIn,
+    });
+
+    // Batch check for existing people by LinkedIn URLs
+    const linkedinUrls = extractedPeople.map(p => p.linkedin).filter(Boolean);
+    const existingPeopleByLinkedIn = await prisma.person.findMany({
+      where: {
+        linkedin: { in: linkedinUrls },
+        tenantId,
+      },
+      select: { linkedin: true },
+    });
+    const existingLinkedInSet = new Set(existingPeopleByLinkedIn.map(p => p.linkedin));
+
+    // Batch fetch all companies by names
+    const companyNames = Array.from(new Set(extractedPeople.map(p => p.companyName).filter(Boolean) as string[]));
+    const existingCompanies = await prisma.company.findMany({
+      where: {
+        name: { in: companyNames },
+        tenantId,
+      },
+      select: { id: true, name: true },
+    });
+    const companyMap = new Map(existingCompanies.map(c => [c.name.toLowerCase(), c.id]));
+
+    // Create missing companies in batch
+    const missingCompanyNames = companyNames.filter(name => !companyMap.has(name!.toLowerCase()));
+    if (missingCompanyNames.length > 0) {
+      const newCompanies = await prisma.company.createManyAndReturn({
+        data: missingCompanyNames.map(name => ({
+          tenantId,
+          name: name!,
+          status: 'Lead',
+          sourceType: 'exa_webset',
+          sourceQuery: webset.query,
+        })),
+      });
+      newCompanies.forEach(c => companyMap.set(c.name.toLowerCase(), c.id));
+
+      logInfo('Created missing companies in batch', {
+        count: newCompanies.length,
+      });
+    }
+
+    // Filter out duplicates and prepare for batch creation
+    let skippedDuplicates = 0;
+    const peopleToCreate = extractedPeople
+      .filter(p => {
+        if (existingLinkedInSet.has(p.linkedin)) {
+          skippedDuplicates++;
+          return false;
+        }
+        return true;
+      })
+      .map(p => {
+        const companyId = p.companyName ? companyMap.get(p.companyName.toLowerCase()) : null;
+        return {
+          tenantId,
+          websetId: webset.id,
+          companyId: companyId || null,
+          firstName: p.firstName,
+          lastName: p.lastName,
+          email: p.email,
+          phone: p.phone,
+          title: p.title,
+          linkedin: p.linkedin,
+        };
+      })
+      .filter((p): p is typeof p & { companyId: string } => p.companyId !== null);
+
+    // Batch create all people
+    let createdPeople: any[] = [];
+    if (peopleToCreate.length > 0) {
+      const createdPeopleResult = await prisma.person.createManyAndReturn({
+        data: peopleToCreate,
+        include: {
+          company: true,
+        },
+      });
+      createdPeople = createdPeopleResult;
+
+      logInfo('Created people in batch', {
+        count: createdPeople.length,
+      });
     }
 
     // Update webset result count

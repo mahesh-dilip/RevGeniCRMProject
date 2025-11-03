@@ -36,7 +36,13 @@ export const CreateDealSchema = z.object({
   nextAction: z.string().max(500, 'Next action too long').optional().nullable(),
   lostReason: z.string().max(500, 'Lost reason too long').optional().nullable(),
   companyId: z.string().cuid('Invalid company ID'),
-  primaryContactId: z.string().cuid('Invalid contact ID').optional().nullable(),
+  primaryContactId: z
+    .string()
+    .cuid('Invalid contact ID')
+    .optional()
+    .nullable()
+    .or(z.literal(''))
+    .transform(val => val === '' ? null : val),
 });
 
 /**
