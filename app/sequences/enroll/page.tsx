@@ -27,6 +27,7 @@ function EnrollSequenceForm() {
 
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set(companyIds));
   const [companySearchQuery, setCompanySearchQuery] = useState('');
+  const [showAllCompanies, setShowAllCompanies] = useState(companyIds.length === 0);
 
   // Fetch sequences with React Query
   const { data: allSequences = [], isLoading: loadingSequences } = useQuery({
@@ -48,10 +49,13 @@ function EnrollSequenceForm() {
     },
   });
 
-  // Get companies to enroll
+  // Get companies to enroll - if showAllCompanies, show all; otherwise show pre-selected
   const companiesToEnroll = useMemo(() => {
+    if (showAllCompanies) {
+      return allCompanies;
+    }
     return allCompanies.filter((c: any) => companyIds.includes(c.id));
-  }, [allCompanies, companyIds]);
+  }, [allCompanies, companyIds, showAllCompanies]);
 
   // Filter companies by search query
   const filteredCompanies = useMemo(() => {
@@ -130,28 +134,17 @@ function EnrollSequenceForm() {
     }
   };
 
-  if (companyIds.length === 0) {
-    return (
-      <div className="max-w-2xl mx-auto text-center py-12">
-        <p className="text-gray-600">No company selected</p>
-        <Link href="/companies">
-          <Button className="mt-4">Go to Companies</Button>
-        </Link>
-      </div>
-    );
-  }
+  // Remove the early return - we'll show company selector instead
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Enroll in Email Sequence</h1>
         <p className="text-gray-600 mt-1">
-          {isBulkEnrollment ? (
+          {selectedCompanyIds.size > 0 ? (
             <>Select a sequence for <strong>{selectedCompanyIds.size} {selectedCompanyIds.size === 1 ? 'company' : 'companies'}</strong></>
           ) : (
-            companiesToEnroll.length > 0 && (
-              <>Select a sequence for <strong>{companiesToEnroll[0].name}</strong></>
-            )
+            <>Search and select companies to enroll in a sequence</>
           )}
         </p>
       </div>
@@ -165,11 +158,22 @@ function EnrollSequenceForm() {
         </Card>
       ) : (
         <>
-          {/* Company Selection for Bulk Enrollment */}
-          {isBulkEnrollment && (
+          {/* Company Selection - always show if searching all or have multiple companies */}
+          {(showAllCompanies || isBulkEnrollment || companyIds.length === 0) && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Companies to Enroll</CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">Companies to Enroll</CardTitle>
+                  {!showAllCompanies && companyIds.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAllCompanies(true)}
+                    >
+                      + Add More Companies
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">

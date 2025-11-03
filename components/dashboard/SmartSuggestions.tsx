@@ -128,34 +128,76 @@ export async function SmartSuggestions() {
     }
 
     return (
-      <div className="space-y-3">
-        <h2 className="text-xl font-semibold">💡 Smart Suggestions</h2>
-        <div className="space-y-2">
-          {topSuggestions.map(suggestion => (
-            <Card
-              key={suggestion.id}
-              className={`p-4 border-l-4 ${
-                suggestion.type === 'success' ? 'border-green-500 bg-green-50' :
-                suggestion.type === 'warning' ? 'border-yellow-500 bg-yellow-50' :
-                'border-blue-500 bg-blue-50'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3 flex-1">
-                  <span className="text-2xl">{suggestion.icon}</span>
-                  <div>
-                    <h3 className="font-semibold text-sm">{suggestion.title}</h3>
-                    <p className="text-xs text-gray-600 mt-1">{suggestion.description}</p>
+      <div className="space-y-4 mt-8">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl font-semibold">💡 Smart Suggestions</h2>
+          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+            {topSuggestions.length} action{topSuggestions.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          {topSuggestions.map(suggestion => {
+            const typeStyles = {
+              success: {
+                border: 'border-emerald-500',
+                bg: 'bg-emerald-50',
+                iconBg: 'bg-emerald-100',
+                textColor: 'text-emerald-900',
+                descColor: 'text-emerald-700'
+              },
+              warning: {
+                border: 'border-amber-500',
+                bg: 'bg-amber-50',
+                iconBg: 'bg-amber-100',
+                textColor: 'text-amber-900',
+                descColor: 'text-amber-700'
+              },
+              info: {
+                border: 'border-blue-500',
+                bg: 'bg-blue-50',
+                iconBg: 'bg-blue-100',
+                textColor: 'text-blue-900',
+                descColor: 'text-blue-700'
+              }
+            };
+            const style = typeStyles[suggestion.type];
+
+            return (
+              <Card
+                key={suggestion.id}
+                className={`p-4 border-l-4 ${style.border} ${style.bg} hover:shadow-md transition-all`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className={`${style.iconBg} rounded-lg p-2 flex-shrink-0`}>
+                      <span className="text-xl leading-none">{suggestion.icon}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className={`font-semibold text-sm ${style.textColor}`}>
+                        {suggestion.title}
+                      </h3>
+                      <p className={`text-xs ${style.descColor} mt-1`}>
+                        {suggestion.description}
+                      </p>
+                    </div>
                   </div>
+                  <Link href={suggestion.href} className="flex-shrink-0">
+                    <Button
+                      size="sm"
+                      variant={suggestion.type === 'success' ? 'default' : 'outline'}
+                      className={`whitespace-nowrap ${
+                        suggestion.type === 'success'
+                          ? 'bg-emerald-600 hover:bg-emerald-700'
+                          : ''
+                      }`}
+                    >
+                      {suggestion.action}
+                    </Button>
+                  </Link>
                 </div>
-                <Link href={suggestion.href}>
-                  <Button size="sm" variant="outline" className="whitespace-nowrap">
-                    {suggestion.action}
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       </div>
     );

@@ -106,6 +106,7 @@ export default function NewSequenceFromTemplatePage() {
     mutationFn: async () => {
       const template = templates.find((t: any) => t.id === selectedTemplateId);
 
+      // Create the sequence
       const response = await fetch('/api/sequences', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -129,11 +130,30 @@ export default function NewSequenceFromTemplatePage() {
         throw new Error(errorData.error || 'Failed to save sequence');
       }
 
-      return response.json();
+      const sequenceData = await response.json();
+
+      // Auto-enroll the sample company
+      if (sampleCompanyId) {
+        const enrollResponse = await fetch(`/api/sequences/${sequenceData.id}/enroll`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyId: sampleCompanyId })
+        });
+
+        if (!enrollResponse.ok) {
+          // Don't fail the whole operation if enrollment fails - just log it
+          const enrollError = await enrollResponse.json();
+          logError('Failed to auto-enroll company:', enrollError);
+        }
+      }
+
+      return sequenceData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sequences'] });
-      toast.success('Sequence created successfully!');
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      const company = companies.find((c: any) => c.id === sampleCompanyId);
+      toast.success(`Sequence created and ${company?.name || 'company'} enrolled successfully!`);
       router.push('/sequences');
     },
     onError: (error: Error) => {

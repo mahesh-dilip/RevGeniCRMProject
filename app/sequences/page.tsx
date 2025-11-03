@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { SequenceDeleteButton } from './components/SequenceDeleteButton';
 
 export default function SequencesPage() {
   // Fetch sequences with React Query
@@ -136,6 +137,7 @@ export default function SequencesPage() {
                           <Link href={`/sequences/${sequence.id}/edit`}>
                             <Button size="sm" variant="outline">Edit</Button>
                           </Link>
+                          <SequenceDeleteButton sequenceId={sequence.id} sequenceName={sequence.name} />
                         </div>
                       </td>
                     </tr>

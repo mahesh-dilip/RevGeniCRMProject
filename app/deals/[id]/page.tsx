@@ -65,12 +65,15 @@ export default async function DealDetailPage({
           <div className="flex items-center gap-4 text-gray-600">
             <Link
               href={`/companies/${deal.company.id}`}
-              className="text-blue-600 hover:underline"
+              className="text-blue-600 hover:underline flex items-center gap-1.5"
             >
-              🏢 {deal.company.name}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              {deal.company.name}
             </Link>
             {deal.value && (
-              <span className="text-2xl font-bold text-green-600">
+              <span className="text-2xl font-bold text-emerald-600 tabular-nums">
                 {formatCurrency(deal.value)}
               </span>
             )}
@@ -117,15 +120,15 @@ export default async function DealDetailPage({
         {/* Win Probability */}
         {deal.probability !== null && deal.stage !== 'Won' && deal.stage !== 'Lost' && (
           <Card className="p-4">
-            <p className="text-sm text-gray-600 mb-1">Win Probability</p>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 bg-gray-200 rounded-full h-2">
+            <p className="text-sm text-gray-600 mb-2">Win Probability</p>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 bg-gray-300 rounded-full h-3 shadow-inner">
                 <div
-                  className="bg-blue-500 h-2 rounded-full"
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full shadow-sm transition-all"
                   style={{ width: `${deal.probability}%` }}
                 />
               </div>
-              <span className="font-semibold text-lg">{deal.probability}%</span>
+              <span className="font-bold text-2xl text-blue-600 tabular-nums">{deal.probability}%</span>
             </div>
           </Card>
         )}
@@ -167,29 +170,37 @@ export default async function DealDetailPage({
             {DEAL_STAGES.filter(s => !['Won', 'Lost'].includes(s.value)).map((stage, index) => {
               const isCompleted = index < currentStageIndex;
               const isCurrent = index === currentStageIndex;
+              const isNext = index === currentStageIndex + 1;
               const isLast = index === DEAL_STAGES.filter(s => !['Won', 'Lost'].includes(s.value)).length - 1;
 
               return (
                 <div key={stage.value} className="flex items-center flex-1">
                   <div className="flex flex-col items-center">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${
-                      isCompleted ? 'bg-green-500 text-white' :
-                      isCurrent ? 'bg-blue-500 text-white' :
-                      'bg-gray-200 text-gray-500'
+                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-semibold shadow-sm ${
+                      isCompleted ? 'bg-emerald-500 text-white ring-2 ring-emerald-200' :
+                      isCurrent ? 'bg-blue-600 text-white ring-4 ring-blue-200 scale-110' :
+                      isNext ? 'bg-blue-100 text-blue-600 ring-2 ring-blue-200' :
+                      'bg-gray-100 text-gray-400'
                     }`}>
                       {isCompleted ? '✓' : index + 1}
                     </div>
-                    <span className={`text-xs mt-2 text-center ${
-                      isCurrent ? 'font-semibold text-blue-600' :
-                      isCompleted ? 'text-gray-600' :
+                    <span className={`text-xs mt-2 text-center max-w-[80px] ${
+                      isCurrent ? 'font-bold text-blue-700' :
+                      isCompleted ? 'font-medium text-emerald-600' :
+                      isNext ? 'font-medium text-blue-500' :
                       'text-gray-400'
                     }`}>
                       {stage.label}
                     </span>
+                    {isCurrent && (
+                      <span className="text-[10px] text-blue-600 font-medium mt-0.5">
+                        Active
+                      </span>
+                    )}
                   </div>
                   {!isLast && (
-                    <div className={`flex-1 h-1 mx-2 ${
-                      isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                    <div className={`flex-1 h-1.5 mx-2 rounded-full ${
+                      isCompleted ? 'bg-emerald-500' : 'bg-gray-200'
                     }`} />
                   )}
                 </div>
@@ -240,27 +251,39 @@ export default async function DealDetailPage({
           <Card className="p-4">
             <h3 className="font-semibold mb-3 text-sm">Quick Actions</h3>
             <p className="text-xs text-gray-500 mb-3">
-              Log past activities related to this deal
+              Log activities related to this deal
             </p>
             <div className="grid grid-cols-2 gap-2">
               <Link href={`/events/new?dealId=${deal.id}&companyId=${deal.companyId}&type=call`}>
-                <Button variant="outline" size="sm" className="w-full">
-                  📞 Log Call
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  Call
                 </Button>
               </Link>
               <Link href={`/events/new?dealId=${deal.id}&companyId=${deal.companyId}&type=meeting`}>
-                <Button variant="outline" size="sm" className="w-full">
-                  🤝 Log Meeting
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  Meeting
                 </Button>
               </Link>
               <Link href={`/events/new?dealId=${deal.id}&companyId=${deal.companyId}&type=email`}>
-                <Button variant="outline" size="sm" className="w-full">
-                  📧 Log Email
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  Email
                 </Button>
               </Link>
               <Link href={`/events/new?dealId=${deal.id}&companyId=${deal.companyId}&type=task`}>
-                <Button variant="outline" size="sm" className="w-full">
-                  ✅ Log Task
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                  Task
                 </Button>
               </Link>
             </div>

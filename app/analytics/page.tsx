@@ -54,21 +54,36 @@ interface AnalyticsData {
   }>;
 }
 
+// Sophisticated, less saturated color palette
 const COLORS = {
-  primary: '#3b82f6',
-  success: '#22c55e',
-  warning: '#f59e0b',
-  danger: '#ef4444',
-  purple: '#a855f7',
-  indigo: '#6366f1',
+  primary: '#5b7fc7',      // Muted blue
+  success: '#4ead6a',      // Softer green
+  warning: '#d9923b',      // Warm amber
+  danger: '#d15d5d',       // Softer red
+  purple: '#9370b8',       // Muted purple
+  indigo: '#6b77c7',       // Softer indigo
+  teal: '#4d9b9e',         // Professional teal
+  slate: '#6b7a8f',        // Sophisticated gray-blue
   gray: '#6b7280'
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  'Lead': COLORS.gray,
+  'Lead': COLORS.slate,
   'Qualified': COLORS.primary,
   'Customer': COLORS.success,
   'Lost': COLORS.danger
+};
+
+// Compact currency formatter for Y-axis
+const formatCompactCurrency = (value: number): string => {
+  if (value === 0) return '£0';
+  if (value >= 1000000) {
+    return `£${(value / 1000000).toFixed(1)}M`;
+  }
+  if (value >= 1000) {
+    return `£${(value / 1000).toFixed(0)}k`;
+  }
+  return `£${value}`;
 };
 
 export default function AnalyticsPage() {
@@ -134,9 +149,28 @@ export default function AnalyticsPage() {
     return null;
   };
 
-  // Custom label renderer with proper typing
+  // Custom label renderer with better positioning to prevent cutoff
   const renderPieLabel = (props: any) => {
-    return `${props.name}: ${props.value} (${(props.percent * 100).toFixed(0)}%)`;
+    const RADIAN = Math.PI / 180;
+    const { cx, cy, midAngle, outerRadius, name, value, percent } = props;
+
+    // Position label further out to prevent cutoff
+    const radius = outerRadius + 30;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#374151"
+        textAnchor={x > cx ? 'start' : 'end'}
+        dominantBaseline="central"
+        className="text-sm font-medium"
+      >
+        {`${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+      </text>
+    );
   };
 
   return (
@@ -245,11 +279,18 @@ export default function AnalyticsPage() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={pipelineData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis tickFormatter={(value) => formatCurrency(value)} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 12 }} />
+                <YAxis
+                  tickFormatter={(value) => formatCompactCurrency(value)}
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                />
                 <Tooltip content={<CurrencyTooltip />} />
-                <Bar dataKey="value" fill={COLORS.primary} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="value" fill={COLORS.primary} radius={[8, 8, 0, 0]}>
+                  {pipelineData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS.primary} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -261,15 +302,15 @@ export default function AnalyticsPage() {
             <CardTitle>Win Rate & Closed Deals</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+            <ResponsiveContainer width="100%" height={320}>
+              <PieChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
                 <Pie
                   data={winRateData}
                   cx="50%"
-                  cy="50%"
+                  cy="45%"
                   labelLine={false}
                   label={renderPieLabel}
-                  outerRadius={80}
+                  outerRadius={70}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -278,7 +319,6 @@ export default function AnalyticsPage() {
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend />
               </PieChart>
             </ResponsiveContainer>
             <div className="flex justify-around mt-4 pt-4 border-t">
@@ -304,15 +344,15 @@ export default function AnalyticsPage() {
             <CardTitle>Lead Sources</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+            <ResponsiveContainer width="100%" height={320}>
+              <PieChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
                 <Pie
                   data={leadSourceData}
                   cx="50%"
-                  cy="50%"
+                  cy="45%"
                   labelLine={false}
                   label={renderPieLabel}
-                  outerRadius={80}
+                  outerRadius={70}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -321,7 +361,6 @@ export default function AnalyticsPage() {
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend />
               </PieChart>
             </ResponsiveContainer>
             <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-100">
@@ -341,15 +380,15 @@ export default function AnalyticsPage() {
             <CardTitle>Companies by Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+            <ResponsiveContainer width="100%" height={320}>
+              <PieChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
                 <Pie
                   data={statusData}
                   cx="50%"
-                  cy="50%"
+                  cy="45%"
                   labelLine={false}
                   label={renderPieLabel}
-                  outerRadius={80}
+                  outerRadius={70}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -358,7 +397,6 @@ export default function AnalyticsPage() {
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -386,47 +424,67 @@ export default function AnalyticsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Growth Trend (6 Months)</CardTitle>
+            <p className="text-sm text-gray-500 mt-1">
+              Pipeline value (£) shown on left axis, counts shown on right axis
+            </p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={data.monthlyTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis yAxisId="left" tickFormatter={(value) => formatCurrency(value)} />
-                <YAxis yAxisId="right" orientation="right" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                />
+                <YAxis
+                  yAxisId="left"
+                  tickFormatter={(value) => formatCompactCurrency(value)}
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                  label={{ value: 'Value (£)', angle: -90, position: 'insideLeft', style: { fill: '#6b7280' } }}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                  label={{ value: 'Count', angle: 90, position: 'insideRight', style: { fill: '#6b7280' } }}
+                />
                 <Tooltip
                   formatter={(value: any, name: string) => {
                     if (name === 'Pipeline Value') return formatCurrency(value);
                     return value;
                   }}
+                  contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px' }}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ paddingTop: '20px' }} />
                 <Line
                   yAxisId="left"
                   type="monotone"
                   dataKey="value"
                   stroke={COLORS.success}
-                  strokeWidth={2}
+                  strokeWidth={3}
                   name="Pipeline Value"
-                  dot={{ fill: COLORS.success }}
+                  dot={{ fill: COLORS.success, r: 4 }}
+                  activeDot={{ r: 6 }}
                 />
                 <Line
                   yAxisId="right"
                   type="monotone"
                   dataKey="deals"
                   stroke={COLORS.primary}
-                  strokeWidth={2}
+                  strokeWidth={3}
                   name="Deals"
-                  dot={{ fill: COLORS.primary }}
+                  dot={{ fill: COLORS.primary, r: 4 }}
+                  activeDot={{ r: 6 }}
                 />
                 <Line
                   yAxisId="right"
                   type="monotone"
                   dataKey="companies"
                   stroke={COLORS.purple}
-                  strokeWidth={2}
+                  strokeWidth={3}
                   name="Companies"
-                  dot={{ fill: COLORS.purple }}
+                  dot={{ fill: COLORS.purple, r: 4 }}
+                  activeDot={{ r: 6 }}
                 />
               </LineChart>
             </ResponsiveContainer>

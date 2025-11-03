@@ -99,40 +99,51 @@ export function StageUpdater({ dealId, currentStage }: StageUpdaterProps) {
 
   return (
     <>
-      <Card className="p-4">
+      <Card className="p-4 bg-gradient-to-r from-gray-50 to-blue-50">
         <Label className="text-sm font-semibold mb-3 block">
-          Update Deal Stage:
+          Update Deal Stage
         </Label>
         <div className="flex flex-wrap gap-2">
-          {activeStages.map(stage => (
-            <Button
-              key={stage.value}
-              variant={currentStage === stage.value ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handleStageChange(stage.value)}
-              disabled={loading || currentStage === stage.value}
-            >
-              {stage.label}
-            </Button>
-          ))}
+          {activeStages.map(stage => {
+            const isActive = currentStage === stage.value;
+            return (
+              <Button
+                key={stage.value}
+                variant={isActive ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleStageChange(stage.value)}
+                disabled={loading || isActive}
+                className={isActive ? 'bg-blue-600 hover:bg-blue-700 ring-2 ring-blue-200' : 'bg-white hover:bg-gray-50'}
+              >
+                {stage.label}
+              </Button>
+            );
+          })}
         </div>
         <div className="flex gap-2 mt-3 pt-3 border-t">
           <Button
             variant="default"
             size="sm"
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
             onClick={() => setShowWonModal(true)}
             disabled={loading}
           >
-            ✓ Mark as Won
+            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Mark as Won
           </Button>
           <Button
-            variant="destructive"
+            variant="outline"
             size="sm"
             onClick={() => setShowLostModal(true)}
             disabled={loading}
+            className="border-gray-300 hover:bg-gray-50"
           >
-            ✗ Mark as Lost
+            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Mark as Lost
           </Button>
         </div>
       </Card>

@@ -33,6 +33,17 @@ export async function GET(
             deal: true,
           },
         },
+        sequenceEnrollments: {
+          include: {
+            sequence: true,
+            scheduledEmails: {
+              where: { status: 'scheduled' },
+              orderBy: { scheduledFor: 'asc' },
+              take: 1
+            }
+          },
+          orderBy: { enrolledAt: 'desc' }
+        },
         _count: {
           select: {
             people: true,

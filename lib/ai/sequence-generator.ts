@@ -246,6 +246,11 @@ export async function generateEmailSequence(
         throw new Error('Failed to parse AI response');
       }
 
+      // Convert newlines to HTML paragraphs for proper Blocknote formatting
+      if (emailData.body) {
+        emailData.body = convertNewlinesToHTML(emailData.body);
+      }
+
       generatedEmails.push(emailData);
     }
 
@@ -254,6 +259,31 @@ export async function generateEmailSequence(
     logError('Error generating email sequence:', error);
     throw error;
   }
+}
+
+/**
+ * Converts plain text with newlines to proper HTML paragraphs
+ * This ensures Blocknote displays the text with proper paragraph breaks
+ */
+function convertNewlinesToHTML(text: string): string {
+  // Split by double newlines (paragraph breaks) or single newlines
+  const paragraphs = text
+    .split(/\n\n+/)  // Split by double newlines first
+    .map(para => para.trim())
+    .filter(para => para.length > 0);
+
+  // If we got paragraphs from double newlines, use those
+  if (paragraphs.length > 1) {
+    return paragraphs.map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`).join('\n');
+  }
+
+  // Otherwise, treat single newlines as paragraph breaks
+  const lines = text
+    .split(/\n/)
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+
+  return lines.map(line => `<p>${line}</p>`).join('\n');
 }
 
 /**

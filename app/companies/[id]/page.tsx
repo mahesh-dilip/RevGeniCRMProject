@@ -14,7 +14,7 @@ import { QualifyLeadButton } from './components/QualifyLeadButton';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { addRecentlyViewed } from '@/lib/utils/recently-viewed';
 
-type TabType = 'overview' | 'people' | 'deals' | 'activity';
+type TabType = 'overview' | 'people' | 'deals' | 'activity' | 'sequences';
 
 export default function CompanyDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -130,9 +130,17 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
 
           <div className="flex gap-2">
             <Link href={`/companies/${params.id}/edit`}>
-              <Button variant="outline" size="sm">Edit</Button>
+              <Button variant="default" size="sm">
+                <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+              </Button>
             </Link>
-            <Button variant="destructive" size="sm" onClick={handleDelete}>
+            <Button variant="outline" size="sm" onClick={handleDelete} className="border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800">
+              <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
               Delete
             </Button>
           </div>
@@ -143,28 +151,43 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
           <CardContent className="py-3">
             <div className="flex flex-wrap gap-2">
               <Link href={`/deals/new?companyId=${company.id}`}>
-                <Button variant="default" size="sm">
-                  💼 Create Deal
+                <Button variant="default" size="sm" className="gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  Create Deal
                 </Button>
               </Link>
               <Link href={`/sequences/enroll?companyId=${company.id}`}>
-                <Button variant="default" size="sm">
-                  📧 Enroll in Sequence
+                <Button variant="default" size="sm" className="gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  Enroll in Sequence
                 </Button>
               </Link>
               <Link href={`/events/new?companyId=${company.id}`}>
-                <Button variant="outline" size="sm">
-                  📅 Log Activity
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Log Activity
                 </Button>
               </Link>
               <Link href={`/people/new?companyId=${company.id}`}>
-                <Button variant="outline" size="sm">
-                  👤 Add Person
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Add Person
                 </Button>
               </Link>
               <Link href={`/ai-people-finder?company=${encodeURIComponent(company.name)}`}>
-                <Button variant="outline" size="sm">
-                  🤖 Find People
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  AI Find People
                 </Button>
               </Link>
             </div>
@@ -173,21 +196,20 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
       </div>
 
       {/* Status Pipeline */}
-      <Card className="bg-gradient-to-r from-gray-50 to-blue-50">
+      <Card className="bg-gradient-to-r from-slate-50 to-blue-50">
         <CardHeader>
-          <CardTitle className="text-base">Company Status</CardTitle>
+          <CardTitle className="text-base">Company Status Pipeline</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between gap-2">
             {[
-              { value: 'Lead', label: 'Lead', color: 'bg-gray-400', icon: '🎯' },
-              { value: 'Qualified', label: 'Qualified', color: 'bg-blue-500', icon: '✅' },
-              { value: 'Customer', label: 'Customer', color: 'bg-green-500', icon: '🏆' },
-              { value: 'Lost', label: 'Lost', color: 'bg-red-500', icon: '❌' }
+              { value: 'Lead', label: 'Lead', color: 'bg-slate-500', activeColor: 'bg-slate-600', ringColor: 'ring-slate-200', icon: '🎯' },
+              { value: 'Qualified', label: 'Qualified', color: 'bg-blue-500', activeColor: 'bg-blue-600', ringColor: 'ring-blue-200', icon: '✅' },
+              { value: 'Customer', label: 'Customer', color: 'bg-emerald-500', activeColor: 'bg-emerald-600', ringColor: 'ring-emerald-200', icon: '🏆' },
+              { value: 'Lost', label: 'Lost', color: 'bg-rose-500', activeColor: 'bg-rose-600', ringColor: 'ring-rose-200', icon: '❌' }
             ].map((status, index, arr) => {
               const isActive = company.status === status.value;
               const isPast = arr.findIndex(s => s.value === company.status) > index;
-              const isFuture = arr.findIndex(s => s.value === company.status) < index;
 
               return (
                 <div key={status.value} className="flex items-center flex-1">
@@ -211,32 +233,32 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
                         toast.error('Failed to update status');
                       }
                     }}
-                    className={`flex flex-col items-center justify-center w-full px-3 py-3 rounded-lg transition-all cursor-pointer ${
+                    className={`flex flex-col items-center justify-center w-full px-3 py-4 rounded-lg transition-all cursor-pointer ${
                       isActive
-                        ? `${status.color} text-white font-semibold shadow-lg scale-105`
+                        ? `${status.activeColor} text-white font-bold shadow-xl ring-4 ${status.ringColor} scale-105`
                         : isPast
-                        ? 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                        : 'bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:shadow-md'
+                        ? `${status.color} text-white opacity-60 hover:opacity-80`
+                        : 'bg-white border-2 border-gray-200 text-gray-500 hover:border-gray-300 hover:shadow hover:text-gray-700'
                     }`}
                   >
-                    <span className="text-2xl mb-1">{status.icon}</span>
-                    <span className="text-sm font-medium">{status.label}</span>
+                    <span className="text-2xl mb-1.5">{status.icon}</span>
+                    <span className={`text-sm ${isActive ? 'font-bold' : 'font-medium'}`}>{status.label}</span>
                     {isActive && (
-                      <span className="text-xs mt-1 opacity-90">Current</span>
+                      <span className="text-[10px] mt-1 font-semibold uppercase tracking-wide">Current</span>
                     )}
                   </button>
 
                   {index < arr.length - 1 && (
                     <div className="flex-shrink-0 w-8 mx-1">
-                      <div className={`h-1 ${isPast ? status.color : 'bg-gray-300'} transition-all`} />
+                      <div className={`h-1.5 rounded-full ${isPast ? status.color : 'bg-gray-200'} transition-all`} />
                     </div>
                   )}
                 </div>
               );
             })}
           </div>
-          <p className="text-xs text-gray-600 mt-3 text-center">
-            Click on any status to update the company's stage
+          <p className="text-xs text-gray-500 mt-4 text-center font-medium">
+            Click any status to update the company's pipeline stage
           </p>
         </CardContent>
       </Card>
@@ -249,6 +271,7 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
             { id: 'people', label: `People (${company._count.people})` },
             { id: 'deals', label: `Deals (${company._count.deals})` },
             { id: 'activity', label: `Activity (${company._count.events})` },
+            { id: 'sequences', label: `Sequences (${company.sequenceEnrollments?.length || 0})` },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -540,6 +563,86 @@ export default function CompanyDetailPage({ params }: { params: { id: string } }
                             )}
                           </div>
                         </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'sequences' && (
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Email Sequences</h2>
+              <Link href={`/sequences/enroll?companyId=${company.id}`}>
+                <Button size="sm">+ Enroll in Sequence</Button>
+              </Link>
+            </div>
+
+            {(!company.sequenceEnrollments || company.sequenceEnrollments.length === 0) ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <p className="text-gray-600 mb-4">Not enrolled in any sequences yet</p>
+                  <Link href={`/sequences/enroll?companyId=${company.id}`}>
+                    <Button>Enroll in First Sequence</Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {company.sequenceEnrollments.map((enrollment: any) => (
+                  <Card key={enrollment.id}>
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <Link
+                            href={`/sequences/${enrollment.sequence.id}`}
+                            className="text-lg font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {enrollment.sequence.name}
+                          </Link>
+                          {enrollment.sequence.description && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              {enrollment.sequence.description}
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant={
+                          enrollment.status === 'active' ? 'default' :
+                          enrollment.status === 'paused' ? 'secondary' :
+                          enrollment.status === 'completed' ? 'success' :
+                          'outline'
+                        }>
+                          {enrollment.status === 'active' && `Step ${enrollment.currentStep}`}
+                          {enrollment.status === 'paused' && 'Paused'}
+                          {enrollment.status === 'completed' && 'Completed'}
+                          {enrollment.status === 'cancelled' && 'Cancelled'}
+                        </Badge>
+                      </div>
+
+                      <div className="flex gap-4 text-sm text-gray-600 mb-3">
+                        <span>
+                          📅 Enrolled {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                        </span>
+                        {enrollment.scheduledEmails && enrollment.scheduledEmails.length > 0 && (
+                          <span className="text-blue-600">
+                            📧 Next email in {Math.ceil((new Date(enrollment.scheduledEmails[0].scheduledFor).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days
+                          </span>
+                        )}
+                      </div>
+
+                      {enrollment.pauseReason && (
+                        <p className="text-sm text-amber-700 bg-amber-50 p-2 rounded mb-3">
+                          <strong>Paused:</strong> {enrollment.pauseReason}
+                        </p>
+                      )}
+
+                      <div className="flex gap-2">
+                        <Link href={`/sequences/${enrollment.sequence.id}`}>
+                          <Button variant="outline" size="sm">View Sequence</Button>
+                        </Link>
                       </div>
                     </CardContent>
                   </Card>

@@ -57,19 +57,44 @@ export function TaskCard({ task }: TaskCardProps) {
     }
   };
 
-  const navigateTo = task.deal 
-    ? `/deals/${task.deal.id}` 
-    : task.company 
-    ? `/companies/${task.company.id}` 
+  const navigateTo = task.deal
+    ? `/deals/${task.deal.id}`
+    : task.company
+    ? `/companies/${task.company.id}`
     : `/events/${task.id}`;
 
-  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !completed;
+  // Calculate task urgency
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+  const dueDateOnly = dueDate ? new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()) : null;
+
+  const isOverdue = dueDateOnly && dueDateOnly < today && !completed;
+  const isDueToday = dueDateOnly && dueDateOnly.getTime() === today.getTime() && !completed;
+  const isDueSoon = dueDateOnly && dueDateOnly > today && dueDateOnly <= new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000) && !completed;
+
+  // Determine card styling based on urgency
+  let cardStyle = '';
+  let dateStyle = 'text-gray-500';
+  let datePrefix = '📅 Due: ';
+
+  if (isOverdue) {
+    cardStyle = 'border-l-4 border-red-500 bg-red-50';
+    dateStyle = 'text-red-700 font-semibold';
+    datePrefix = '⚠️ Overdue: ';
+  } else if (isDueToday) {
+    cardStyle = 'border-l-4 border-amber-500 bg-amber-50';
+    dateStyle = 'text-amber-700 font-semibold';
+    datePrefix = '🔔 Due Today: ';
+  } else if (isDueSoon) {
+    cardStyle = 'border-l-4 border-blue-400 bg-blue-50';
+    dateStyle = 'text-blue-700';
+    datePrefix = '📌 Due Soon: ';
+  }
 
   return (
     <Link href={navigateTo}>
-      <Card className={`p-4 hover:shadow-md transition-shadow cursor-pointer ${
-        isOverdue ? 'border-l-4 border-red-500' : ''
-      }`}>
+      <Card className={`p-4 hover:shadow-md transition-all cursor-pointer ${cardStyle}`}>
         <div className="flex items-start gap-3">
           <div onClick={handleToggleComplete}>
             <Checkbox
@@ -87,11 +112,11 @@ export function TaskCard({ task }: TaskCardProps) {
               </h3>
               {task.priority && (
                 <span className={`text-xs font-semibold px-2 py-1 rounded whitespace-nowrap ${
-                  task.priority === 'high' ? 'bg-red-600 text-white' :
+                  task.priority === 'high' ? 'bg-rose-600 text-white' :
                   task.priority === 'medium' ? 'bg-orange-500 text-white' :
-                  'bg-slate-400 text-white'
+                  'bg-slate-500 text-white'
                 }`}>
-                  {task.priority === 'high' ? '🔴 ' : task.priority === 'medium' ? '🟠 ' : ''}
+                  {task.priority === 'high' ? '🔴 ' : task.priority === 'medium' ? '🟠 ' : '⚪ '}
                   {task.priority.toUpperCase()}
                 </span>
               )}
@@ -108,10 +133,8 @@ export function TaskCard({ task }: TaskCardProps) {
                 </p>
               )}
               {task.dueDate && (
-                <p className={`text-xs ${
-                  isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'
-                }`}>
-                  {isOverdue ? '⚠️ Overdue: ' : '📅 Due: '}
+                <p className={`text-xs ${dateStyle}`}>
+                  {datePrefix}
                   {new Date(task.dueDate).toLocaleDateString()}
                 </p>
               )}
