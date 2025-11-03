@@ -1,10 +1,10 @@
 import { format, formatDistanceToNow } from 'date-fns';
 
 export function formatCurrency(value: number | null | undefined): string {
-  if (value === null || value === undefined) return '$0';
-  return new Intl.NumberFormat('en-US', {
+  if (value === null || value === undefined) return '£0';
+  return new Intl.NumberFormat('en-GB', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'GBP',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
