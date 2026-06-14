@@ -2,14 +2,44 @@
 
 > An intelligent, production-ready CRM system featuring AI-powered lead discovery using Exa Websets, multi-tenant architecture, automated email sequences, and comprehensive pipeline management.
 
-**Built for**: RevGeni.ai Founding AI Engineer Technical Assessment
-**Live Demo**: [https://revgeieclaudecode-qxkfptf4w-deathbybutterchickens-projects.vercel.app](https://revgeieclaudecode-qxkfptf4w-deathbybutterchickens-projects.vercel.app)
-**Repository**: [GitHub](https://github.com/deathbybutterchicken/RevGeniCRMProject)
+**Live Demo**: [revgenieproject.vercel.app](https://revgenieproject.vercel.app)
+**Repository**: [github.com/mahesh-dilip/RevGeniCRMProject](https://github.com/mahesh-dilip/RevGeniCRMProject)
 
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-5-2D3748?style=flat&logo=prisma)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-336791?style=flat&logo=postgresql)](https://supabase.com/)
+
+<!-- SCREENSHOTS -->
+<!--
+Add product screenshots here, e.g.:
+![AI Lead Finder](docs/screenshots/ai-lead-finder.png)
+![Deal Pipeline (Kanban)](docs/screenshots/pipeline.png)
+![Analytics Dashboard](docs/screenshots/analytics.png)
+-->
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart TD
+    User([Sales User])
+    User --> Clerk[Clerk Auth<br/>org-based multi-tenancy]
+    Clerk --> App[Next.js 14 App Router<br/>Server + Client Components]
+
+    App --> API[API Routes<br/>Zod-validated, rate-limited]
+
+    API --> Exa[Exa Websets API<br/>neural web search<br/>company + people discovery]
+    API --> Claude[Anthropic Claude<br/>email sequence generation]
+    API --> Prisma[Prisma ORM<br/>tenant-scoped queries]
+
+    Prisma --> DB[(PostgreSQL / Supabase)]
+
+    App -.error + perf telemetry.-> Sentry[Sentry]
+    API -.error + perf telemetry.-> Sentry
+
+    Exa --> API
+    Claude --> API
+```
 
 ## 🎯 Project Overview
 
@@ -173,8 +203,8 @@ This CRM demonstrates production-grade software engineering with a focus on AI i
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd revgeieclaudecode
+   git clone https://github.com/mahesh-dilip/RevGeniCRMProject.git
+   cd RevGeniCRMProject
    ```
 
 2. **Install dependencies**
@@ -615,7 +645,7 @@ To test the application:
 
 ## 📄 License
 
-This project was created for the RevGeni.ai technical assessment.
+See [LICENSE](LICENSE).
 
 ## 🙏 Acknowledgments
 
@@ -669,8 +699,6 @@ This project demonstrates proficiency in:
 
 ---
 
-**Created for**: RevGeni.ai Founding AI Engineer Technical Assessment
-**Author**: Mahesh Vinayakrao Pawar
-**Date**: November 2024
-**Live Demo**: https://revgeieclaudecode-qxkfptf4w-deathbybutterchickens-projects.vercel.app
-**Repository**: https://github.com/deathbybutterchicken/RevGeniCRMProject
+**Author**: Mahesh Dilip
+**Live Demo**: https://revgenieproject.vercel.app
+**Repository**: https://github.com/mahesh-dilip/RevGeniCRMProject
