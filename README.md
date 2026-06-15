@@ -1,3 +1,5 @@
+[![CI](https://github.com/mahesh-dilip/RevGeniCRMProject/actions/workflows/ci.yml/badge.svg)](https://github.com/mahesh-dilip/RevGeniCRMProject/actions/workflows/ci.yml)
+
 # RevGeni.ai CRM with AI Lead Discovery
 
 > An intelligent, production-ready CRM system featuring AI-powered lead discovery using Exa Websets, multi-tenant architecture, automated email sequences, and comprehensive pipeline management.
