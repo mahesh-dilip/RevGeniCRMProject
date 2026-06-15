@@ -43,7 +43,7 @@ flowchart TD
 
 ## 🎯 Project Overview
 
-This CRM demonstrates production-grade software engineering with a focus on AI integration, performance optimization, and user experience. Built with Next.js 14 App Router, it features a complete sales workflow from AI-powered prospecting to deal closure.
+A full-stack CRM built to explore production-grade AI integration end to end: neural web search for lead discovery, LLM-generated email sequences, and a complete sales workflow from prospecting to deal closure. Built with Next.js 14 App Router, multi-tenant from the data layer up, with rate limiting, input validation, and error monitoring wired throughout.
 
 ## ✨ Key Highlights
 
@@ -358,7 +358,7 @@ This CRM demonstrates production-grade software engineering with a focus on AI i
 - **Task generation** for sales follow-ups
 
 ### Database Design
-- **Multi-tenancy ready** (simple implementation for demo)
+- **Multi-tenant by design** — `tenantId` on every model, resolved from the authenticated Clerk org and applied to every query for row-level isolation
 - **Comprehensive indexes** for performance
 - **Cascading deletes** for data integrity
 - **Flexible event system** supporting multiple entity types
@@ -516,18 +516,15 @@ await createMany(people)                                            // 1 query
 - Request deduplication and background refetching
 - Simpler than Redux for server state
 
-## 🚧 Future Improvements
+## 🚧 Roadmap
 
-Given more time, these features would be added:
+Natural next steps to take this from a working product to a deployable one:
 
-1. **Real email sending** via SendGrid/Resend integration
-2. **Full authentication** with multi-user support
-3. **Advanced analytics** dashboard with charts
-4. **Drag-and-drop** deal cards in pipeline
-5. **Rich text editor** for notes and emails
-6. **Export functionality** to CSV/Excel
-7. **Mobile app** with React Native
-8. **Webhook integrations** for external tools
+1. **Real email delivery** via Resend/SendGrid (sequences are generated and scheduled today; sending is stubbed)
+2. **Drag-and-drop** deal cards on the pipeline board
+3. **CSV/Excel export** for companies, people, and deals
+4. **Webhook integrations** for external tools
+5. **Native mobile client** (React Native)
 
 ## 🧪 Testing
 
@@ -669,10 +666,10 @@ Built with:
 
 ## 📚 Documentation
 
-- **Architecture Diagrams**: See `/docs/architecture-diagram.md` for Mermaid diagrams
-- **Presentation Script**: See `/docs/presentation-script-v2.md` for detailed walkthrough
-- **Technical Assessment**: See `/docs/TECHNICAL_ASSESSMENT.md` for requirements checklist
-- **Development History**: See `/docs/archive/` for phase-by-phase progress
+- **Architecture Diagrams**: See [`docs/architecture-diagram.md`](docs/architecture-diagram.md) for Mermaid diagrams
+- **Project Walkthrough**: See [`docs/presentation-script-v2.md`](docs/presentation-script-v2.md) for a detailed feature tour
+- **Engineering Notes**: See [`docs/`](docs/) for deep dives on Exa Websets integration, performance optimization, and design decisions
+- **Development History**: See [`docs/archive/`](docs/archive/) for phase-by-phase progress
 
 ## 🔐 Security & Best Practices
 
