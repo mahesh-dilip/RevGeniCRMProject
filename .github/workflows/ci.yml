@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run tests
+        run: npx vitest run
+
+      - name: Build
+        # Clerk's publishable key is needed at prerender time and is a public,
+        # non-secret value. DATABASE_URL only needs to parse (no live DB is
+        # contacted during build). These are dummy placeholders for CI only.
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZHVtbXktY2ktYnVpbGQuY2xlcmsuYWNjb3VudHMuZGV2JA==
+          CLERK_SECRET_KEY: sk_test_dummyCIbuildSecretKeyValue0000000000
+          DATABASE_URL: postgresql://user:pass@localhost:5432/db?schema=public
+          DIRECT_URL: postgresql://user:pass@localhost:5432/db?schema=public
+        run: npm run build
